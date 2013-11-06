@@ -64,8 +64,8 @@ function Line(x1, y1, x2, y2) {
 	// Background behind text
 	ctx.lineWidth = 20;
 	ctx.beginPath();
-	ctx.moveTo((this.x1 + this.x2)/2 - 5, (this.y1 + this.y2)/2 - 10);
-	ctx.lineTo((this.x1 + this.x2)/2 + ctx.measureText(print_text).width + 10, (this.y1 + this.y2)/2 - 10);
+	ctx.moveTo((this.x1 + this.x2)/2 - 5, (this.y1 + this.y2)/2 - 15);
+	ctx.lineTo((this.x1 + this.x2)/2 + ctx.measureText(print_text).width + 10, (this.y1 + this.y2)/2 - 15);
 	ctx.stroke();
 
 	// actual line
@@ -93,7 +93,7 @@ function Line(x1, y1, x2, y2) {
 	    ctx.lineTo(this.x2 - Tlen * dy/len, this.y2 + Tlen * dx/len);
 	}
 
-	ctx.fillText(print_text, (this.x1 + this.x2)/2, (this.y1 + this.y2)/2);
+	ctx.fillText(print_text, (this.x1 + this.x2)/2, (this.y1 + this.y2)/2 - 5);
 	ctx.stroke();
     }
 
