@@ -14,6 +14,7 @@ for the distance to be measured (12.70mm).
 ![sample-image][sample-image]
 
 Basic UI:
+   * Open augenmass.html with a browser.
    * Enter path (or URI) to background image. Press the `Measure` button.
    * Draw lines. First click first point, second click second point. ESC key if
      you want to cancel the current line.
