@@ -1,15 +1,8 @@
 /* -*- JavaScript -*- */
 /*
 TODO:
-  - draw length of line. This is just the euklid-length with a factor of 1.
-    (total 3 digits)
-  - draw mode: add a new line with a mouse-click start, mouse-click end.
-  - draw line with endmarkers
-  - double-click on center allows to enter number. This determines a factor by
-    which its all length needs to be multiplied. Defines global factor.
-    are done relative to that. The defining line has a red background for
-    that number.
-
+  - figure out how to only partially redraw stuff. Right now, everything
+    is redrawn on change (which seems to be fine speed-wise, but feels wasteful)
   - show a cross-hair while moving cursor. Right mouse button allows to
     rotate that cross-hair (stays where it was, and rotation of the X-axis)
     Double-click right: back to straight
