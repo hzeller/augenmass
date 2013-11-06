@@ -13,6 +13,8 @@ TODO:
     line)
  */
 
+var text_font_pixels = 24;
+
 function euklid_distance(x1, y1, x2, y2) {
     return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
@@ -34,47 +36,8 @@ function Line(x1, y1, x2, y2) {
 	return euklid_distance(centerX, centerY, x, y);
     }
 
-    this.draw = function(ctx, length_factor, highlight) {
+    this._draw_tline = function(ctx, len) {
 	var Tlen = 15
-	var len = this.length();
-	var print_text = (length_factor * len).toPrecision(4);
-	// Some white background.
-	ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-	ctx.lineWidth = 10;
-	ctx.beginPath();
-	ctx.moveTo(this.x1, this.y1);
-	ctx.lineTo(this.x2, this.y2);
-
-	if (!highlight && len > 10) {
-	    var dx = this.x2 - this.x1;
-	    var dy = this.y2 - this.y1;
-	    ctx.moveTo(this.x1, this.y1);
-	    ctx.lineTo(this.x1 + Tlen * dy/len, this.y1 - Tlen * dx/len);
-	    ctx.moveTo(this.x1, this.y1);
-	    ctx.lineTo(this.x1 - Tlen * dy/len, this.y1 + Tlen * dx/len);
-
-	    ctx.moveTo(this.x2, this.y2);
-	    ctx.lineTo(this.x2 + Tlen * dy/len, this.y2 - Tlen * dx/len);
-	    ctx.moveTo(this.x2, this.y2);
-	    ctx.lineTo(this.x2 - Tlen * dy/len, this.y2 + Tlen * dx/len);
-	}
-
-	ctx.stroke();
-
-	// Background behind text
-	ctx.lineWidth = 20;
-	ctx.beginPath();
-	ctx.moveTo((this.x1 + this.x2)/2 - 5, (this.y1 + this.y2)/2 - 15);
-	ctx.lineTo((this.x1 + this.x2)/2 + ctx.measureText(print_text).width + 10, (this.y1 + this.y2)/2 - 15);
-	ctx.stroke();
-
-	// actual line
-	if (highlight) {
-	    ctx.strokeStyle = 'rgba(0, 0, 255, 1.0)';
-	} else {
-	    ctx.strokeStyle = 'rgba(0, 0, 0, 1.0)';
-	}
-	ctx.lineWidth = 2;
 	ctx.beginPath();
 	ctx.moveTo(this.x1, this.y1);
 	ctx.lineTo(this.x2, this.y2);
@@ -93,7 +56,44 @@ function Line(x1, y1, x2, y2) {
 	    ctx.lineTo(this.x2 - Tlen * dy/len, this.y2 + Tlen * dx/len);
 	}
 
-	ctx.fillText(print_text, (this.x1 + this.x2)/2, (this.y1 + this.y2)/2 - 5);
+	ctx.stroke();
+    }
+
+    this.draw = function(ctx, length_factor, highlight) {
+	var len = this.length();
+	var print_text = (length_factor * len).toPrecision(4);
+	// Some white background.
+	ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+	ctx.lineWidth = 10;
+	ctx.lineCap = 'round';
+	this._draw_tline(ctx, len);
+
+	// Background behind text. We're using a short line, so that we
+	// have a nicely rounded box with our line-cap.
+	ctx.beginPath();
+	var text_len = ctx.measureText(print_text).width;
+	ctx.lineWidth = text_font_pixels + 10;
+	ctx.moveTo((this.x1 + this.x2)/2 - 10,
+		   (this.y1 + this.y2)/2 - text_font_pixels/2);
+	ctx.lineTo((this.x1 + this.x2)/2 + text_len + 10,
+		   (this.y1 + this.y2)/2 - text_font_pixels/2);
+	ctx.stroke();
+
+	// actual line
+	if (highlight) {
+	    ctx.strokeStyle = 'rgba(0, 0, 255, 1.0)';
+	} else {
+	    ctx.strokeStyle = 'rgba(0, 0, 0, 1.0)';
+	}
+	ctx.lineWidth = 1;
+	this._draw_tline(ctx, len);
+
+	// .. and text.
+	ctx.beginPath();
+	ctx.fillStyle = '#000';
+	ctx.textBaseline = 'middle';
+	ctx.fillText(print_text, (this.x1 + this.x2)/2,
+		     (this.y1 + this.y2)/2 - text_font_pixels/2);
 	ctx.stroke();
     }
 
@@ -203,7 +203,7 @@ function extract_event_pos(e, callback) {
 function measure_init(path) {
     measure_canvas = document.getElementById('measure-c');
     context = measure_canvas.getContext('2d');
-    context.font = '12pt Sans Serif';
+    context.font = 'bold ' + text_font_pixels + 'px Sans Serif';
     backgroundImage.onload = function() { image_loaded = true; drawAll(); }
 
     if (path[0] == "/") {
