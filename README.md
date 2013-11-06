@@ -2,7 +2,7 @@ Augenmaß
 ========
 
 Given a background photo, you can draw lines on top of it whose relative
-length is shown. Double-clicking on a line allows you to set a
+lengths are shown. Double-clicking on a line allows you to set a
 'reference size', all the other numbers are adjusted accordingly.
 
 Use this for instance by taking a picture of something with a ruler in the
@@ -14,8 +14,9 @@ for the distance to be measured (12.70mm).
 ![sample-image][sample-image]
 
 Basic UI:
-   * Open augenmass.html with a browser.
+   * Open augenmass.html in your filesystem with a browser.
    * Enter path (or URI) to background image. Press the `Measure` button.
+     (Nothing is uploaded anywhere, this is just used locally by your browser).
    * Draw lines. First click first point, second click second point. ESC key if
      you want to cancel the current line.
    * Double-click on a number to enter some value. The other lines are
