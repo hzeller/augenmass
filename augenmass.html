@@ -1,8 +1,11 @@
 <html>
 <head><script src="augenmass.js"></script><head>
 <body style="font-family: sans-serif;">
-  URI of background image to measure<br/>
+  Enter the URI of background image..<br/>
+  <!-- ideally, this would be a type=file thing, but that only returns a
+       redacted path -->
   <input type="text" id="imguri" size="80"/>
+  .. and press
   <input type="button" value="Measure!" onclick="measure_init(imguri.value);"/>
   <canvas id="measure-c" width="4096" height="4096"></canvas>
 </body>
