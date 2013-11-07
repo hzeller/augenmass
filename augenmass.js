@@ -36,6 +36,17 @@ function Line(x1, y1, x2, y2) {
 	return euklid_distance(centerX, centerY, x, y);
     }
 
+    // Draw a T end-piece at position x, y
+    this.draw_t = function(ctx, x, y, remote_x, remote_y) {
+	var Tlen = 15
+	var len = euklid_distance(x, y, remote_x, remote_y);
+	if (len < 1) return;
+	var dx = remote_x - x;
+	var dy = remote_y - y;
+	ctx.moveTo(x - Tlen * dy/len, y + Tlen * dx/len);
+	ctx.lineTo(x + Tlen * dy/len, y - Tlen * dx/len);
+    }
+
     this._draw_tline = function(ctx, len) {
 	var Tlen = 15
 	ctx.beginPath();
@@ -56,6 +67,45 @@ function Line(x1, y1, x2, y2) {
 	    ctx.lineTo(this.x2 - Tlen * dy/len, this.y2 + Tlen * dx/len);
 	}
 
+	ctx.stroke();
+    }
+
+    // Drawing the line, but with a t-anchor only on the start-side
+    // and 1-2 pixels shorter, so that we don't cover anything in the
+    // target crosshair.
+    this.draw_editline = function(ctx, length_factor) {
+	var len = this.length();
+	var print_text = (length_factor * len).toPrecision(4);
+
+	// We want to draw the line a little bit shorter, so that the
+	// open crosshair cursor has 'free sight'
+	var dx = this.x2 - this.x1;
+	var dy = this.y2 - this.y1;
+	if (len > 2) {
+	    dx = dx * (len - 2)/len;
+	    dy = dy * (len - 2)/len;
+	}
+
+	ctx.beginPath();
+	ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+	ctx.lineWidth = 10;
+	ctx.lineCap = 'round';
+	this.draw_t(ctx, this.x1, this.y1, this.x2, this.y2);
+	ctx.stroke();
+
+	ctx.beginPath();
+	ctx.lineCap = 'butt';  // Flat to not bleed into crosshair.
+	ctx.moveTo(this.x1, this.y1);
+	ctx.lineTo(this.x1 + dx, this.y1 + dy);
+	ctx.stroke();
+
+	ctx.beginPath();
+	ctx.strokeStyle = '#00F';
+	ctx.lineWidth = 1;
+	ctx.lineCap = 'butt';
+	this.draw_t(ctx, this.x1, this.y1, this.x2, this.y2);
+	ctx.moveTo(this.x1, this.y1);
+	ctx.lineTo(this.x1 + dx, this.y1 + dy);
 	ctx.stroke();
     }
 
@@ -126,7 +176,7 @@ function drawAll() {
 	lines[i].draw(context, print_factor, false);
     }
     if (current_line != undefined) {
-	current_line.draw(context, print_factor, true);
+	current_line.draw_editline(context, print_factor);
     }
 }
 
