@@ -5,7 +5,7 @@
     <style>
       canvas {
         position: absolute;
-        top: 40px;
+        top: 60px;
         left: 0px;
         background: transparent;
       }
@@ -21,12 +21,11 @@
     Enter the URI of background image..<br/>
     <!-- ideally, this would be a type=file thing, but that only returns a
 	 redacted path -->
-    <input type="text" id="imguri" size="80"/>
-    .. and press
-    <input type="button" value="Measure!" onclick="measure_init(imguri.value);"/>
+    <input type="text" id="imguri" size="80" onkeyup="if (event.keyCode == 13) change_background(imguri.value);"/>
 
     <canvas id="background-img" width="50" height="50"></canvas>
     <canvas id="measure" width="50" height="50" style="cursor:url(target-cursor.png) 15 15,crosshair;"></canvas>
 
+    <script>measure_init();</script>
   </body>
 </html>
