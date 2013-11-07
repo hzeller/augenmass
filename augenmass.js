@@ -183,7 +183,6 @@ var measure_canvas;
 var context;
 var print_factor = 1;
 var backgroundImage = new Image();
-var image_loaded = false;
 var lines = new Array();
 var current_line = undefined;
 var start_line_time = 0;
@@ -192,14 +191,13 @@ function addLine(line) {
     lines[lines.length] = line;
 }
 
+function clearDirtyRegion() {
+    // TODO: actually record the dirty region.
+    context.clearRect(0, 0, measure_canvas.width, measure_canvas.height);
+}
+
 function drawAll() {
-    if (image_loaded) {
-	context.drawImage(backgroundImage, 0, 0);
-    } else {
-	context.fillStyle = '#FFFFEE';
-	context.fillRect(0, 0, 3000, 3000);
-	context.fillStyle = '#000';
-    }
+    clearDirtyRegion();
     for (i=0; i < lines.length; ++i) {
 	lines[i].draw(context, print_factor, false);
     }
@@ -224,7 +222,7 @@ function clickOp(x, y) {
 	current_line.updatePos(x, y);
 	// Make sure that this was not a double-click event.
 	// (are there better ways ?)
-	if (current_line.length() > 0 && (now - start_line_time) > 300)
+	if (current_line.length() > 0 && (now - start_line_time) > 500)
 	    addLine(current_line);
 	current_line = undefined;
     }
@@ -282,16 +280,31 @@ function extract_event_pos(e, callback) {
     callback(x, y);
 }
 
+function init_measure_canvas(width, height) {
+    measure_canvas.width = width;
+    measure_canvas.height = height;
+    context.font = 'bold ' + text_font_pixels + 'px Sans Serif';
+}
+
 function measure_init(path) {
-    measure_canvas = document.getElementById('measure-c');
+    measure_canvas = document.getElementById('measure');
     context = measure_canvas.getContext('2d');
     context.font = 'bold ' + text_font_pixels + 'px Sans Serif';
-    backgroundImage.onload = function() { image_loaded = true; drawAll(); }
 
+    // Image loading in the background canvas. Once we have the image, we
+    // can size the canvases to a proper size.
+    var background_canvas = document.getElementById('background-img');
+    backgroundImage.onload = function() {
+	var bg_context = background_canvas.getContext('2d');
+	background_canvas.width = backgroundImage.width;
+	background_canvas.height = backgroundImage.height;
+	init_measure_canvas(backgroundImage.width, backgroundImage.height);
+
+	bg_context.drawImage(backgroundImage, 0, 0);
+    }
     if (path[0] == "/") {
 	path = "file://" + path;
     }
-
     backgroundImage.src = path;
 
     measure_canvas.addEventListener("click", function(e) {

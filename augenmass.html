@@ -2,6 +2,20 @@
   <head>
     <link rel="icon" type="image/png" href="tabicon.png"/>
     <script src="augenmass.js"></script>
+    <style>
+      canvas {
+        position: absolute;
+        top: 40px;
+        left: 0px;
+        background: transparent;
+      }
+      #background-img {
+        z-index: -1;
+      }
+      #measure {
+        z-index: 0;
+      }
+    </style>
   </head>
   <body style="font-family: sans-serif;">
     Enter the URI of background image..<br/>
@@ -10,6 +24,9 @@
     <input type="text" id="imguri" size="80"/>
     .. and press
     <input type="button" value="Measure!" onclick="measure_init(imguri.value);"/>
-    <canvas id="measure-c" width="4096" height="4096" style="cursor:url(target-cursor.png) 15 15,crosshair;"></canvas>
+
+    <canvas id="background-img" width="50" height="50"></canvas>
+    <canvas id="measure" width="50" height="50" style="cursor:url(target-cursor.png) 15 15,crosshair;"></canvas>
+
   </body>
 </html>
