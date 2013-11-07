@@ -3,28 +3,32 @@
     <link rel="icon" type="image/png" href="tabicon.png"/>
     <script src="augenmass.js"></script>
     <style>
+      body {
+        background: #666666;
+      }
+      #helptext {
+        color: #fff;
+        font-size: 10pt;
+      }
       canvas {
         position: absolute;
-        top: 60px;
-        left: 0px;
+        top: 2em;
+        left: 10px;
         background: transparent;
       }
       #background-img {
         z-index: -1;
       }
       #measure {
-        z-index: 0;
+        z-index: -0;
       }
     </style>
   </head>
   <body style="font-family: sans-serif;">
-    Enter the URI of background image..<br/>
-    <!-- ideally, this would be a type=file thing, but that only returns a
-	 redacted path -->
-    <input type="text" id="imguri" size="80" onkeyup="if (event.keyCode == 13) change_background(imguri.value);"/>
-
-    . <!-- in chrome, the dblclick event is not absorbed (don't know why yet)
-	   and selects the last character. Let that only be a small one :) -->
+    <form>
+      <input id="file-chooser" type="file" accept="image/*">
+      <span id="helptext">(Only your browser sees the file. It is not uploaded anywhere.)</span>
+    </form>
 
     <canvas id="background-img" width="50" height="50"></canvas>
     <canvas id="measure" width="50" height="50" style="cursor:url(target-cursor.png) 15 15,crosshair;"></canvas>

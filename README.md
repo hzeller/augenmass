@@ -14,8 +14,8 @@ for the distance to be measured (12.70mm).
 ![sample-image][sample-image]
 
 Basic UI:
-   * Open augenmass.html in your filesystem with a browser.
-   * Enter path (or URI) to background image and press Return/Enter.
+   * Open [augenmass-file][augenmass.html] in your browser.
+   * Choose background image file.
      (Nothing is uploaded anywhere, this is just used locally by your browser).
    * Draw lines. First click first point, second click second point. ESC key if
      you want to cancel the current line.
@@ -26,3 +26,4 @@ Basic UI:
 me a pull request).
 
 [sample-image]: https://github.com/hzeller/augenmass/raw/master/sample-image/augenmass.png
+[augenmass-file]: https://rawgithub.com/hzeller/augenmass/master/augenmass.html

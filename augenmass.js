@@ -1,8 +1,7 @@
 /* -*- JavaScript -*- */
 /*
 TODO:
-  - figure out how to only partially redraw stuff. Right now, everything
-    is redrawn on change (which seems to be fine speed-wise, but feels wasteful)
+  - draw current line in separate canvas to simplify redraw.
   - show a cross-hair while moving cursor. Right mouse button allows to
     rotate that cross-hair (stays where it was, and rotation of the X-axis)
     Double-click right: back to straight
@@ -308,23 +307,35 @@ function measure_init() {
 	extract_event_pos(e, doubleClickOp);
     });
     document.addEventListener("keydown", OnKeyEvent);
+
+    var chooser = document.getElementById("file-chooser");
+    chooser.addEventListener("change", function(e) {
+	change_background(chooser);
+    });
 }
 
-function change_background(path) {
-    var backgroundImage = new Image();
-    // Image loading in the background canvas. Once we have the image, we
-    // can size the canvases to a proper size.
-    var background_canvas = document.getElementById('background-img');
-    backgroundImage.onload = function() {
-	var bg_context = background_canvas.getContext('2d');
-	background_canvas.width = backgroundImage.width;
-	background_canvas.height = backgroundImage.height;
-	bg_context.drawImage(backgroundImage, 0, 0);
+function change_background(chooser) {
+    if (chooser.value == "" || !chooser.files[0].type.match(/image.*/))
+	return;
 
-	init_measure_canvas(backgroundImage.width, backgroundImage.height);
+    var img_reader = new FileReader();
+    img_reader.readAsDataURL(chooser.files[0]);
+    img_reader.onload = function(e) {
+	var backgroundImage = new Image();
+	// Image loading in the background canvas. Once we have the image, we
+	// can size the canvases to a proper size.
+	var background_canvas = document.getElementById('background-img');
+	backgroundImage.onload = function() {
+	    var bg_context = background_canvas.getContext('2d');
+	    background_canvas.width = backgroundImage.width;
+	    background_canvas.height = backgroundImage.height;
+	    bg_context.drawImage(backgroundImage, 0, 0);
+	    
+	    init_measure_canvas(backgroundImage.width, backgroundImage.height);
+
+	    // First successful image load: remove now unnecessary clutter.
+	    document.getElementById('helptext').style.visibility = "hidden";
+	}
+	backgroundImage.src = e.target.result;
     }
-    if (path[0] == "/") {
-	path = "file://" + path;
-    }
-    backgroundImage.src = path;
 }
