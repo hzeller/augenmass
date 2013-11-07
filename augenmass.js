@@ -216,7 +216,7 @@ function moveOp(x, y) {
 }
 
 function clickOp(x, y) {
-    var now = new Date().getMilliseconds();
+    var now = new Date().getTime();
     if (current_line == undefined) {
 	current_line = new Line(x, y, x, y);
 	start_line_time = now;
@@ -224,7 +224,7 @@ function clickOp(x, y) {
 	current_line.updatePos(x, y);
 	// Make sure that this was not a double-click event.
 	// (are there better ways ?)
-	if (current_line.length() > 0 && now - start_line_time > 20)
+	if (current_line.length() > 0 && (now - start_line_time) > 300)
 	    addLine(current_line);
 	current_line = undefined;
     }
