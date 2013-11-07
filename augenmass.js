@@ -185,6 +185,55 @@ var lines;
 var current_line;
 var start_line_time;
 
+// We show different help levels. Once the user managed
+// all of them, we're silent.
+HelpLevelEnum = {
+    HELP_FILE_LOADING:  0,
+    HELP_START_LINE:    1,
+    HELP_FINISH_LINE:   2,
+    HELP_SET_LEN:       3,
+    HELP_YOU_ARE_EXPERT_NOW: 4
+};
+
+var last_help_level = -1;
+function updateHelpLevel(requested_level) {
+    if (requested_level < last_help_level)
+	return;
+    last_help_level = requested_level;
+    var help_text = undefined;
+    switch (requested_level) {
+    case HelpLevelEnum.HELP_FILE_LOADING:
+	help_text = "(Only your browser reads the image. It is not uploaded anywhere.)"
+	break;
+    case HelpLevelEnum.HELP_START_LINE:
+	help_text = "Click somewhere to start a line.";
+	break;
+    case HelpLevelEnum.HELP_FINISH_LINE:
+	help_text = "A second click finishes the line. Or Cancel with 'Esc'.";
+	break;
+    case HelpLevelEnum.HELP_SET_LEN:
+	help_text = "Double click on length to set relative size.";
+	break;
+    case HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW:
+	help_text = "Congratulations - you are an expert now!";
+	break;
+    }
+    if (help_text != undefined) {
+	var helptext_span = document.getElementById('helptext');
+	while (helptext_span.firstChild) {
+	    helptext_span.removeChild(helptext.firstChild);
+	}
+	helptext_span.appendChild(document.createTextNode(help_text));
+
+	if (requested_level == HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW) {
+	    helptext_span.style.transition = "opacity 10s";
+	    helptext_span.style.WebkitTransition = "opacity 10s";
+	    helptext_span.style.MozTransition = "opacity 10s";
+	    helptext_span.style.opacity = 0;
+	}
+    }
+}
+
 function addLine(line) {
     lines[lines.length] = line;
 }
@@ -216,6 +265,7 @@ function clickOp(x, y) {
     if (current_line == undefined) {
 	current_line = new Line(x, y, x, y);
 	start_line_time = now;
+	updateHelpLevel(HelpLevelEnum.HELP_FINISH_LINE);
     } else {
 	current_line.updatePos(x, y);
 	// Make sure that this was not a double-click event.
@@ -223,6 +273,7 @@ function clickOp(x, y) {
 	if (current_line.length() > 50
 	    || (current_line.length() > 0 && (now - start_line_time) > 500)) {
 	    addLine(current_line);
+	    updateHelpLevel(HelpLevelEnum.HELP_SET_LEN);
 	}
 
 	current_line = undefined;
@@ -251,6 +302,7 @@ function doubleClickOp(x, y) {
 		print_factor = new_value / selected_line.length();
 	    }
 	}
+	updateHelpLevel(HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW);
 	drawAll();
     }
 }
@@ -293,6 +345,7 @@ function init_measure_canvas(width, height) {
 }
 
 function measure_init() {
+    updateHelpLevel(HelpLevelEnum.HELP_FILE_LOADING);
     measure_canvas = document.getElementById('measure');
     context = measure_canvas.getContext('2d');
     init_measure_canvas(100, 100);
@@ -333,8 +386,7 @@ function change_background(chooser) {
 	    
 	    init_measure_canvas(backgroundImage.width, backgroundImage.height);
 
-	    // First successful image load: remove now unnecessary clutter.
-	    document.getElementById('helptext').style.visibility = "hidden";
+	    updateHelpLevel(HelpLevelEnum.HELP_START_LINE);
 	}
 	backgroundImage.src = e.target.result;
     }
