@@ -76,6 +76,7 @@ function Line(x1, y1, x2, y2) {
     this.draw_editline = function(ctx, length_factor) {
 	var len = this.length();
 	var print_text = (length_factor * len).toPrecision(4);
+	var text_len = ctx.measureText(print_text).width + 2 * text_font_pixels;
 
 	// We want to draw the line a little bit shorter, so that the
 	// open crosshair cursor has 'free sight'
@@ -86,6 +87,7 @@ function Line(x1, y1, x2, y2) {
 	    dy = dy * (len - 2)/len;
 	}
 
+	// White background for t-line
 	ctx.beginPath();
 	ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
 	ctx.lineWidth = 10;
@@ -93,12 +95,14 @@ function Line(x1, y1, x2, y2) {
 	this.draw_t(ctx, this.x1, this.y1, this.x2, this.y2);
 	ctx.stroke();
 
+	// White background for actual line
 	ctx.beginPath();
 	ctx.lineCap = 'butt';  // Flat to not bleed into crosshair.
 	ctx.moveTo(this.x1, this.y1);
 	ctx.lineTo(this.x1 + dx, this.y1 + dy);
 	ctx.stroke();
 
+	// t-line and line.
 	ctx.beginPath();
 	ctx.strokeStyle = '#00F';
 	ctx.lineWidth = 1;
@@ -107,13 +111,47 @@ function Line(x1, y1, x2, y2) {
 	ctx.moveTo(this.x1, this.y1);
 	ctx.lineTo(this.x1 + dx, this.y1 + dy);
 	ctx.stroke();
+
+	if (len >= 2) {
+	    // White background for text. We're using a short line, so that we
+	    // have a nicely rounded box with our line-cap.
+	    var text_dx = -text_len/2;
+	    var text_dy = -(text_font_pixels + 10)/2;
+	    if (len > 0) {
+		text_dx = -dx * text_len/(2 * len);
+		text_dy = -dy * (text_font_pixels + 10)/(2 * len);
+	    }
+	    ctx.beginPath();
+	    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+	    ctx.lineWidth = text_font_pixels + 10;
+	    ctx.lineCap = 'round';
+	    // We added the text_font_pixels above, so remove them here: the
+	    // rounding of the stroke will cover that.
+	    var background_text_len = text_len/2 - text_font_pixels;
+	    ctx.moveTo(this.x1 + text_dx - background_text_len,
+		       this.y1 + text_dy);
+	    ctx.lineTo(this.x1 + text_dx + background_text_len,
+		       this.y1 + text_dy);
+	    ctx.stroke();
+	    
+	    ctx.beginPath();
+	    ctx.fillStyle = '#000';
+	    ctx.textBaseline = 'middle';
+	    ctx.textAlign = 'center';
+	    ctx.fillText(print_text, this.x1 + text_dx, this.y1 + text_dy);
+	    ctx.stroke();
+	}
     }
 
     this.draw = function(ctx, length_factor, highlight) {
 	var len = this.length();
 	var print_text = (length_factor * len).toPrecision(4);
 	// Some white background.
-	ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+	if (highlight) {
+	    ctx.strokeStyle = 'rgba(255, 255, 0, 0.4)';
+	} else {
+	    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+	}
 	ctx.lineWidth = 10;
 	ctx.lineCap = 'round';
 	this._draw_tline(ctx, len);
@@ -123,9 +161,9 @@ function Line(x1, y1, x2, y2) {
 	ctx.beginPath();
 	var text_len = ctx.measureText(print_text).width;
 	ctx.lineWidth = text_font_pixels + 10;
-	ctx.moveTo((this.x1 + this.x2)/2 - 10,
+	ctx.moveTo((this.x1 + this.x2)/2 - text_len/2 - 10,
 		   (this.y1 + this.y2)/2 - text_font_pixels/2);
-	ctx.lineTo((this.x1 + this.x2)/2 + text_len + 10,
+	ctx.lineTo((this.x1 + this.x2)/2 + text_len/2 + 10,
 		   (this.y1 + this.y2)/2 - text_font_pixels/2);
 	ctx.stroke();
 
@@ -142,6 +180,7 @@ function Line(x1, y1, x2, y2) {
 	ctx.beginPath();
 	ctx.fillStyle = '#000';
 	ctx.textBaseline = 'middle';
+	ctx.textAlign = 'center';
 	ctx.fillText(print_text, (this.x1 + this.x2)/2,
 		     (this.y1 + this.y2)/2 - text_font_pixels/2);
 	ctx.stroke();
