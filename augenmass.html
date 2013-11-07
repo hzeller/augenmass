@@ -23,6 +23,9 @@
 	 redacted path -->
     <input type="text" id="imguri" size="80" onkeyup="if (event.keyCode == 13) change_background(imguri.value);"/>
 
+    . <!-- in chrome, the dblclick event is not absorbed (don't know why yet)
+	   and selects the last character. Let that only be a small one :) -->
+
     <canvas id="background-img" width="50" height="50"></canvas>
     <canvas id="measure" width="50" height="50" style="cursor:url(target-cursor.png) 15 15,crosshair;"></canvas>
 
