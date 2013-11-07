@@ -47,29 +47,6 @@ function Line(x1, y1, x2, y2) {
 	ctx.lineTo(x + Tlen * dy/len, y - Tlen * dx/len);
     }
 
-    this._draw_tline = function(ctx, len) {
-	var Tlen = 15
-	ctx.beginPath();
-	ctx.moveTo(this.x1, this.y1);
-	ctx.lineTo(this.x2, this.y2);
-
-	if (len > 10) {
-	    var dx = this.x2 - this.x1;
-	    var dy = this.y2 - this.y1;
-	    ctx.moveTo(this.x1, this.y1);
-	    ctx.lineTo(this.x1 + Tlen * dy/len, this.y1 - Tlen * dx/len);
-	    ctx.moveTo(this.x1, this.y1);
-	    ctx.lineTo(this.x1 - Tlen * dy/len, this.y1 + Tlen * dx/len);
-
-	    ctx.moveTo(this.x2, this.y2);
-	    ctx.lineTo(this.x2 + Tlen * dy/len, this.y2 - Tlen * dx/len);
-	    ctx.moveTo(this.x2, this.y2);
-	    ctx.lineTo(this.x2 - Tlen * dy/len, this.y2 + Tlen * dx/len);
-	}
-
-	ctx.stroke();
-    }
-
     // Drawing the line, but with a t-anchor only on the start-side
     // and 1-2 pixels shorter, so that we don't cover anything in the
     // target crosshair.
@@ -146,6 +123,8 @@ function Line(x1, y1, x2, y2) {
     this.draw = function(ctx, length_factor, highlight) {
 	var len = this.length();
 	var print_text = (length_factor * len).toPrecision(4);
+
+	ctx.beginPath();
 	// Some white background.
 	if (highlight) {
 	    ctx.strokeStyle = 'rgba(255, 255, 0, 0.4)';
@@ -154,7 +133,11 @@ function Line(x1, y1, x2, y2) {
 	}
 	ctx.lineWidth = 10;
 	ctx.lineCap = 'round';
-	this._draw_tline(ctx, len);
+	ctx.moveTo(this.x1, this.y1);
+	ctx.lineTo(this.x2, this.y2);
+	this.draw_t(ctx, this.x1, this.y1, this.x2, this.y2);	
+	this.draw_t(ctx, this.x2, this.y2, this.x1, this.y1);	
+	ctx.stroke();
 
 	// Background behind text. We're using a short line, so that we
 	// have a nicely rounded box with our line-cap.
@@ -167,6 +150,7 @@ function Line(x1, y1, x2, y2) {
 		   (this.y1 + this.y2)/2 - text_font_pixels/2);
 	ctx.stroke();
 
+	ctx.beginPath();
 	// actual line
 	if (highlight) {
 	    ctx.strokeStyle = 'rgba(0, 0, 255, 1.0)';
@@ -174,7 +158,11 @@ function Line(x1, y1, x2, y2) {
 	    ctx.strokeStyle = 'rgba(0, 0, 0, 1.0)';
 	}
 	ctx.lineWidth = 1;
-	this._draw_tline(ctx, len);
+	ctx.moveTo(this.x1, this.y1);
+	ctx.lineTo(this.x2, this.y2);
+	this.draw_t(ctx, this.x1, this.y1, this.x2, this.y2);	
+	this.draw_t(ctx, this.x2, this.y2, this.x1, this.y1);	
+	ctx.stroke();
 
 	// .. and text.
 	ctx.beginPath();
@@ -198,6 +186,7 @@ var backgroundImage = new Image();
 var image_loaded = false;
 var lines = new Array();
 var current_line = undefined;
+var start_line_time = 0;
 
 function addLine(line) {
     lines[lines.length] = line;
@@ -227,11 +216,15 @@ function moveOp(x, y) {
 }
 
 function clickOp(x, y) {
+    var now = new Date().getMilliseconds();
     if (current_line == undefined) {
 	current_line = new Line(x, y, x, y);
+	start_line_time = now;
     } else {
 	current_line.updatePos(x, y);
-	if (current_line.length() > 0)
+	// Make sure that this was not a double-click event.
+	// (are there better ways ?)
+	if (current_line.length() > 0 && now - start_line_time > 20)
 	    addLine(current_line);
 	current_line = undefined;
     }
