@@ -13,7 +13,7 @@ TODO:
     line)
  */
 
-var text_font_pixels = 24;
+var text_font_pixels = 18;
 
 function euklid_distance(x1, y1, x2, y2) {
     return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
