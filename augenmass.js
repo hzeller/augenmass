@@ -274,16 +274,36 @@ function showLoupe(x, y) {
 	loupe_canvas.style.left = "10px";
     }
     var loupe_factor = 5;
-    var sw = loupe_ctx.canvas.width;
+    var loupe_width = loupe_ctx.canvas.width;
+    var img_x = backgroundImage.width;
+    var img_y = backgroundImage.height;
+    var crop_size = loupe_width/loupe_factor;
+    var start_x = x - crop_size/2;
+    var start_y = y - crop_size/2;
+    var off_x = 0, off_y = 0;
+    if (start_x < 0) { off_x = -start_x; start_x = 0; }
+    if (start_y < 0) { off_y = -start_y; start_y = 0; }
+    var end_x = x + crop_size/2;
+    var end_y = y + crop_size/2;
+    end_x = end_x < img_x ? end_x : img_x;
+    end_y = end_y < img_y ? end_y : img_y;
+    var crop_w = (end_x - start_x);
+    var crop_h = (end_y - start_y);
+    loupe_ctx.fillStyle = "#777";
+    loupe_ctx.fillRect(0, 0, loupe_width, loupe_width);
+
     loupe_ctx.drawImage(backgroundImage,
-			x - sw/(2*loupe_factor),
-			y - sw/(2*loupe_factor), sw, sw,
-			0, 0, loupe_factor * sw, loupe_factor * sw);
+			start_x, start_y, crop_w, crop_h,
+			off_x * loupe_factor, off_y * loupe_factor,
+			loupe_factor * crop_w, loupe_factor * crop_h);
+
     loupe_ctx.beginPath();
-    loupe_ctx.moveTo(0, sw/2);
-    loupe_ctx.lineTo(sw, sw/2);
-    loupe_ctx.moveTo(sw/2, 0);
-    loupe_ctx.lineTo(sw/2, sw);
+    loupe_ctx.strokeStyle = '#000';
+    loupe_ctx.lineWidth = 1;
+    loupe_ctx.moveTo(0, loupe_width/2);
+    loupe_ctx.lineTo(loupe_width, loupe_width/2);
+    loupe_ctx.moveTo(loupe_width/2, 0);
+    loupe_ctx.lineTo(loupe_width/2, loupe_width);
     loupe_ctx.stroke();
 }
 
