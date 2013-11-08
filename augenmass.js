@@ -1,6 +1,8 @@
 /* -*- JavaScript -*- */
 /*
 TODO:
+  - check the canvas grid mapping (it covers the pixels with offset 0.5)
+  - fix loupe for chrome when it is close to the border.
   - draw current line in separate canvas to simplify redraw.
   - show a cross-hair while moving cursor. Right mouse button allows to
     rotate that cross-hair (stays where it was, and rotation of the X-axis)
@@ -180,11 +182,14 @@ function Line(x1, y1, x2, y2) {
 }
 
 var measure_canvas;
-var context;
+var measure_ctx;
+var loupe_canvas;
+var loupe_ctx;
 var print_factor;
 var lines;
 var current_line;
 var start_line_time;
+var backgroundImage;  // if loaded.
 
 // We show different help levels. Once the user managed
 // all of them, we're silent.
@@ -228,8 +233,6 @@ function updateHelpLevel(requested_level) {
 
 	if (requested_level == HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW) {
 	    helptext_span.style.transition = "opacity 10s";
-	    helptext_span.style.WebkitTransition = "opacity 10s";
-	    helptext_span.style.MozTransition = "opacity 10s";
 	    helptext_span.style.opacity = 0;
 	}
     }
@@ -241,20 +244,49 @@ function addLine(line) {
 
 function clearDirtyRegion() {
     // TODO: actually record the dirty region.
-    context.clearRect(0, 0, measure_canvas.width, measure_canvas.height);
+    measure_ctx.clearRect(0, 0,
+			      measure_canvas.width, measure_canvas.height);
 }
 
 function drawAll() {
     clearDirtyRegion();
     for (i=0; i < lines.length; ++i) {
-	lines[i].draw(context, print_factor, false);
+	lines[i].draw(measure_ctx, print_factor, false);
     }
     if (current_line != undefined) {
-	current_line.draw_editline(context, print_factor);
+	current_line.draw_editline(measure_ctx, print_factor);
     }
 }
 
+function showLoupe(x, y) {
+    if (backgroundImage === undefined || loupe_ctx === undefined)
+	return;
+    var frame_x = x - scrollLeft();
+    var frame_y = y - scrollTop();
+    if (frame_x < 1.5 * loupe_canvas.width
+	&& frame_y < 1.1 * loupe_canvas.height) {
+	loupe_canvas.style.left = (2 * loupe_canvas.width) + "px";
+    } else if (frame_x > 1.7 * loupe_canvas.width
+	       || frame_y > 1.2 * loupe_canvas.height) {
+	// Little hysteresis on transitioning back
+	loupe_canvas.style.left = "10px";
+    }
+    var loupe_factor = 5;
+    var sw = loupe_ctx.canvas.width;
+    loupe_ctx.drawImage(backgroundImage,
+			x - sw/(2*loupe_factor),
+			y - sw/(2*loupe_factor), sw, sw,
+			0, 0, loupe_factor * sw, loupe_factor * sw);
+    loupe_ctx.beginPath();
+    loupe_ctx.moveTo(0, sw/2);
+    loupe_ctx.lineTo(sw, sw/2);
+    loupe_ctx.moveTo(sw/2, 0);
+    loupe_ctx.lineTo(sw/2, sw);
+    loupe_ctx.stroke();
+}
+
 function moveOp(x, y) {
+    showLoupe(x, y);
     if (current_line == undefined)
 	return;
     current_line.updatePos(x, y);
@@ -294,7 +326,7 @@ function doubleClickOp(x, y) {
     }
 
     if (selected_line && smallest_distance < 50) {
-	selected_line.draw(context, print_factor, true);
+	selected_line.draw(measure_ctx, print_factor, true);
 	var orig_len_txt = (print_factor * selected_line.length()).toPrecision(4);
 	var new_value_txt = prompt("Length of selected line ?", orig_len_txt);
 	if (orig_len_txt != new_value_txt) {
@@ -315,6 +347,14 @@ function OnKeyEvent(e) {
     }
 }
 
+function scrollTop() {
+    return document.body.scrollTop + document.documentElement.scrollTop;
+}
+
+function scrollLeft() {
+    return document.body.scrollLeft + document.documentElement.scrollLeft;
+}
+
 function extract_event_pos(e, callback) {
     var x;
     var y;
@@ -323,10 +363,8 @@ function extract_event_pos(e, callback) {
 	y = e.pageY;
     }
     else {
-	x = e.clientX + document.body.scrollLeft +
-            document.documentElement.scrollLeft;
-	y = e.clientY + document.body.scrollTop +
-            document.documentElement.scrollTop;
+	x = e.clientX + scrollLeft();
+	y = e.clientY + scrollY();
     }
     x -= measure_canvas.offsetLeft;
     y -= measure_canvas.offsetTop;
@@ -337,7 +375,7 @@ function extract_event_pos(e, callback) {
 function init_measure_canvas(width, height) {
     measure_canvas.width = width;
     measure_canvas.height = height;
-    context.font = 'bold ' + text_font_pixels + 'px Sans Serif';
+    measure_ctx.font = 'bold ' + text_font_pixels + 'px Sans Serif';
 
     print_factor = 1;
     lines = new Array();
@@ -348,7 +386,11 @@ function init_measure_canvas(width, height) {
 function measure_init() {
     updateHelpLevel(HelpLevelEnum.HELP_FILE_LOADING);
     measure_canvas = document.getElementById('measure');
-    context = measure_canvas.getContext('2d');
+    measure_ctx = measure_canvas.getContext('2d');
+
+    loupe_canvas = document.getElementById('loupe');
+    loupe_ctx = loupe_canvas.getContext('2d');
+
     init_measure_canvas(100, 100);
 
     measure_canvas.addEventListener("click", function(e) {
@@ -375,20 +417,21 @@ function change_background(chooser) {
     var img_reader = new FileReader();
     img_reader.readAsDataURL(chooser.files[0]);
     img_reader.onload = function(e) {
-	var backgroundImage = new Image();
+	var new_img = new Image();
 	// Image loading in the background canvas. Once we have the image, we
 	// can size the canvases to a proper size.
 	var background_canvas = document.getElementById('background-img');
-	backgroundImage.onload = function() {
+	new_img.onload = function() {
 	    var bg_context = background_canvas.getContext('2d');
-	    background_canvas.width = backgroundImage.width;
-	    background_canvas.height = backgroundImage.height;
-	    bg_context.drawImage(backgroundImage, 0, 0);
+	    background_canvas.width = new_img.width;
+	    background_canvas.height = new_img.height;
+	    bg_context.drawImage(new_img, 0, 0);
 	    
-	    init_measure_canvas(backgroundImage.width, backgroundImage.height);
+	    init_measure_canvas(new_img.width, new_img.height);
 
 	    updateHelpLevel(HelpLevelEnum.HELP_START_LINE);
+	    backgroundImage = new_img;
 	}
-	backgroundImage.src = e.target.result;
+	new_img.src = e.target.result;
     }
 }

@@ -20,7 +20,11 @@
         z-index: -1;
       }
       #measure {
-        z-index: -0;
+        z-index: 0;
+      }
+      #loupe {
+        position: fixed;
+        transition: left 0.3s;
       }
     </style>
   </head>
@@ -32,7 +36,7 @@
 
     <canvas id="background-img" width="50" height="50"></canvas>
     <canvas id="measure" width="50" height="50" style="cursor:url(target-cursor.png) 15 15,crosshair;"></canvas>
-
+    <canvas id="loupe" width="150" height="150"></canvas>
     <script>measure_init();</script>
   </body>
 </html>
