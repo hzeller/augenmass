@@ -3,6 +3,8 @@
 TODO:
   - check the canvas grid mapping (it covers the pixels with offset 0.5)
   - fix loupe for chrome when it is close to the border.
+  - loupe: add a photographer corner-frame around the selected pixel.
+  - loupe: enhance image contrast ?
   - draw current line in separate canvas to simplify redraw.
   - show a cross-hair while moving cursor. Right mouse button allows to
     rotate that cross-hair (stays where it was, and rotation of the X-axis)
