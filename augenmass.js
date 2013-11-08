@@ -12,6 +12,7 @@ TODO:
     line)
  */
 
+var white_background_style = 'rgba(255, 255, 255, 0.4)';
 var text_font_pixels = 18;
 
 function euklid_distance(x1, y1, x2, y2) {
@@ -65,7 +66,7 @@ function Line(x1, y1, x2, y2) {
 
 	// White background for t-line
 	ctx.beginPath();
-	ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+	ctx.strokeStyle = white_background_style;
 	ctx.lineWidth = 10;
 	ctx.lineCap = 'round';
 	this.draw_t(ctx, this.x1, this.y1, this.x2, this.y2);
@@ -98,7 +99,7 @@ function Line(x1, y1, x2, y2) {
 		text_dy = -dy * (text_font_pixels + 10)/(2 * len);
 	    }
 	    ctx.beginPath();
-	    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+	    ctx.strokeStyle = white_background_style;
 	    ctx.lineWidth = text_font_pixels + 10;
 	    ctx.lineCap = 'round';
 	    // We added the text_font_pixels above, so remove them here: the
@@ -128,7 +129,7 @@ function Line(x1, y1, x2, y2) {
 	if (highlight) {
 	    ctx.strokeStyle = 'rgba(255, 255, 0, 0.4)';
 	} else {
-	    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+	    ctx.strokeStyle = white_background_style;
 	}
 	ctx.lineWidth = 10;
 	ctx.lineCap = 'round';
