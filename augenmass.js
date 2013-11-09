@@ -1,23 +1,17 @@
 /* -*- JavaScript -*- */
 /*
-TODO:
-  - check the canvas grid mapping (it covers the pixels with offset 0.5)
-  - fix loupe for chrome when it is close to the border.
-  - loupe: add a photographer corner-frame around the selected pixel.
-  - loupe: enhance image contrast ?
-  - draw current line in separate canvas to simplify redraw.
-  - show a cross-hair while moving cursor. Right mouse button allows to
-    rotate that cross-hair (stays where it was, and rotation of the X-axis)
-    Double-click right: back to straight
-  - two modes: draw, select
-  - select: left click selects a line (endpoints and center). Shows
-    a little square.
-  - clicking a square allows to drag it (endpoints: coordinates, center whole
-    line)
+ * potential TODO
+ * - check the canvas grid mapping (it covers the pixels with offset 0.5)
+ * - draw current line in separate canvas to simplify redraw (and faster).
+ * - two modes: draw, select
+ * - select: left click selects a line (endpoints and center). Highlight;
+ *   del deletes.
  */
 
+// Some constants.
 var white_background_style = 'rgba(255, 255, 255, 0.4)';
 var text_font_pixels = 18;
+var loupe_magnification = 7;
 
 function euklid_distance(x1, y1, x2, y2) {
     return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
@@ -29,11 +23,14 @@ function Line(x1, y1, x2, y2) {
     this.x2 = x2;
     this.y2 = y2;
 
+    // While editing: updating second end of the line.
     this.updatePos = function(x2, y2) {
 	this.x2 = x2;
 	this.y2 = y2;
     }
 
+    // Helper for determining selection: how far is the given position from the
+    // center text.
     this.distanceToCenter = function(x, y) {
 	var centerX = (this.x2 + this.x1)/2;
 	var centerY = (this.y2 + this.y1)/2;
@@ -51,21 +48,22 @@ function Line(x1, y1, x2, y2) {
 	ctx.lineTo(x + Tlen * dy/len, y - Tlen * dx/len);
     }
 
-    // Drawing the line, but with a t-anchor only on the start-side
-    // and 1-2 pixels shorter, so that we don't cover anything in the
-    // target crosshair.
+    // Drawing the line while editing.
+    // We only show the t-anchor on the start-side. Also the line is
+    // 1-2 pixels shorter where the mouse-cursor is, so that we don't cover
+    // anything in the target crosshair.
     this.draw_editline = function(ctx, length_factor) {
-	var len = this.length();
-	var print_text = (length_factor * len).toPrecision(4);
+	var pixel_len = this.length();
+	var print_text = (length_factor * pixel_len).toPrecision(4);
 	var text_len = ctx.measureText(print_text).width + 2 * text_font_pixels;
 
 	// We want to draw the line a little bit shorter, so that the
 	// open crosshair cursor has 'free sight'
 	var dx = this.x2 - this.x1;
 	var dy = this.y2 - this.y1;
-	if (len > 2) {
-	    dx = dx * (len - 2)/len;
-	    dy = dy * (len - 2)/len;
+	if (pixel_len > 2) {
+	    dx = dx * (pixel_len - 2)/pixel_len;
+	    dy = dy * (pixel_len - 2)/pixel_len;
 	}
 
 	// White background for t-line
@@ -93,14 +91,14 @@ function Line(x1, y1, x2, y2) {
 	ctx.lineTo(this.x1 + dx, this.y1 + dy);
 	ctx.stroke();
 
-	if (len >= 2) {
+	if (pixel_len >= 2) {
 	    // White background for text. We're using a short line, so that we
 	    // have a nicely rounded box with our line-cap.
 	    var text_dx = -text_len/2;
 	    var text_dy = -(text_font_pixels + 10)/2;
-	    if (len > 0) {
-		text_dx = -dx * text_len/(2 * len);
-		text_dy = -dy * (text_font_pixels + 10)/(2 * len);
+	    if (pixel_len > 0) {
+		text_dx = -dx * text_len/(2 * pixel_len);
+		text_dy = -dy * (text_font_pixels + 10)/(2 * pixel_len);
 	    }
 	    ctx.beginPath();
 	    ctx.strokeStyle = white_background_style;
@@ -124,9 +122,9 @@ function Line(x1, y1, x2, y2) {
 	}
     }
 
+    // General draw of a measuring line.
     this.draw = function(ctx, length_factor, highlight) {
-	var len = this.length();
-	var print_text = (length_factor * len).toPrecision(4);
+	var print_text = (length_factor * this.length()).toPrecision(4);
 
 	ctx.beginPath();
 	// Some white background.
@@ -193,8 +191,9 @@ var current_line;
 var start_line_time;
 var backgroundImage;  // if loaded.
 
-// We show different help levels. Once the user managed
-// all of them, we're silent.
+// We show different help levels. After each stage the user successfully
+// performs, the next level is shown. Once the user managed all of them,
+// we're fading into silency.
 HelpLevelEnum = {
     HELP_FILE_LOADING:  0,
     HELP_START_LINE:    1,
@@ -240,18 +239,14 @@ function updateHelpLevel(requested_level) {
     }
 }
 
+// Add a new measuring line to the list.
 function addLine(line) {
     lines[lines.length] = line;
 }
 
-function clearDirtyRegion() {
-    // TODO: actually record the dirty region.
-    measure_ctx.clearRect(0, 0,
-			      measure_canvas.width, measure_canvas.height);
-}
-
+// Draw all the lines!
 function drawAll() {
-    clearDirtyRegion();
+    measure_ctx.clearRect(0, 0, measure_canvas.width, measure_canvas.height);
     for (i=0; i < lines.length; ++i) {
 	lines[i].draw(measure_ctx, print_factor, false);
     }
@@ -260,6 +255,7 @@ function drawAll() {
     }
 }
 
+// Helper to show the 'corner hooks' in the loupe display.
 function showQuadBracket(loupe_ctx, loupe_size, bracket_len) {
     loupe_ctx.moveTo(0, bracket_len);                 // top left.
     loupe_ctx.lineTo(bracket_len, bracket_len);
@@ -288,11 +284,11 @@ function showLoupe(x, y) {
 	// Little hysteresis on transitioning back
 	loupe_canvas.style.left = "10px";
     }
-    var loupe_factor = 7;
     var loupe_size = loupe_ctx.canvas.width;
     var img_max_x = backgroundImage.width - 1;
     var img_max_y = backgroundImage.height - 1;
-    var crop_size = loupe_size/loupe_factor;  // the small square we want to enlarge.
+    // The size of square we want to enlarge.
+    var crop_size = loupe_size/loupe_magnification;
     var start_x = x - crop_size/2;
     var start_y = y - crop_size/2;
     var off_x = 0, off_y = 0;
@@ -310,14 +306,15 @@ function showLoupe(x, y) {
     off_y -= 0.5;
     loupe_ctx.drawImage(backgroundImage,
 			start_x, start_y, crop_w, crop_h,
-			off_x * loupe_factor, off_y * loupe_factor,
-			loupe_factor * crop_w, loupe_factor * crop_h);
+			off_x * loupe_magnification, off_y * loupe_magnification,
+			loupe_magnification * crop_w,
+			loupe_magnification * crop_h);
 
     loupe_ctx.beginPath();
     loupe_ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
     loupe_ctx.lineWidth = 1;
     // draw four brackets enclosing the pixel in question.
-    var bracket_len = (loupe_size - loupe_factor)/2;
+    var bracket_len = (loupe_size - loupe_magnification)/2;
     showQuadBracket(loupe_ctx, loupe_size, bracket_len);
     loupe_ctx.stroke();
     loupe_ctx.beginPath();
@@ -331,15 +328,15 @@ function showLoupe(x, y) {
     loupe_ctx.stroke();
 }
 
-var fading_loupe_t;
+var fading_loupe_timer;
 function showFadingLoupe(x, y) {
-    if (fading_loupe_t != undefined)
-	clearTimeout(fading_loupe_t);
+    if (fading_loupe_timer != undefined)
+	clearTimeout(fading_loupe_timer);   // stop scheduled fade-out.
     loupe_canvas.style.transition = "left 0.3s, opacity 0s";
     loupe_canvas.style.opacity = 1;
     showLoupe(x, y);
     // Stay a couple of seconds, then fade away.
-    fading_loupe_t = setTimeout(function() {
+    fading_loupe_timer = setTimeout(function() {
 	loupe_canvas.style.transition = "left 0.3s, opacity 5s";
 	loupe_canvas.style.opacity = 0;
     }, 8000);
@@ -401,7 +398,7 @@ function doubleClickOp(x, y) {
 }
 
 function OnKeyEvent(e) {
-    if (e.keyCode == 27 && current_line != undefined) {
+    if (e.keyCode == 27 && current_line != undefined) {  // ESC key.
 	current_line = undefined;
 	drawAll();
     }
@@ -416,8 +413,8 @@ function scrollLeft() {
 }
 
 function extract_event_pos(e, callback) {
-    var x;
-    var y;
+    // browser and scroll-independent extraction of mouse cursor in canvas.
+    var x, y;
     if (e.pageX != undefined && e.pageY != undefined) {
 	x = e.pageX;
 	y = e.pageY;
@@ -432,6 +429,7 @@ function extract_event_pos(e, callback) {
     callback(x, y);
 }
 
+// Create a fresh measure canvas of the given size.
 function init_measure_canvas(width, height) {
     measure_canvas.width = width;
     measure_canvas.height = height;
@@ -443,6 +441,7 @@ function init_measure_canvas(width, height) {
     start_line_time = 0;
 }
 
+// Init function. Call once on page-load.
 function measure_init() {
     updateHelpLevel(HelpLevelEnum.HELP_FILE_LOADING);
     measure_canvas = document.getElementById('measure');
@@ -455,7 +454,7 @@ function measure_init() {
     loupe_ctx.mozImageSmoothingEnabled = false;
     loupe_ctx.webkitImageSmoothingEnabled = false;
 
-    init_measure_canvas(100, 100);
+    init_measure_canvas(100, 100);   // Some default until we have an image.
 
     measure_canvas.addEventListener("click", function(e) {
 	extract_event_pos(e, clickOp);
@@ -470,11 +469,11 @@ function measure_init() {
 
     var chooser = document.getElementById("file-chooser");
     chooser.addEventListener("change", function(e) {
-	change_background(chooser);
+	load_background_image(chooser);
     });
 }
 
-function change_background(chooser) {
+function load_background_image(chooser) {
     if (chooser.value == "" || !chooser.files[0].type.match(/image.*/))
 	return;
 
