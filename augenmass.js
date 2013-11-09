@@ -1,11 +1,17 @@
 /* -*- JavaScript -*- */
 /*
  * potential TODO
- * - check the canvas grid mapping (it covers the pixels with offset 0.5)
  * - draw current line in separate canvas to simplify redraw (and faster).
  * - two modes: draw, select
  * - select: left click selects a line (endpoints and center). Highlight;
  *   del deletes.
+ * - make more 'object oriented'.
+ * - show currently drawn line in loupe.
+ * - shift + mouse movement: only allow for discrete 360/16 angles.
+ * - provide a 'reference straight line' defining the 0 degree angle.
+ * - 'collision detection' for length labels.
+ * - download should return a PDF with the compressed background image and
+ *   vector lines on top.
  */
 
 // Some constants.
@@ -481,13 +487,32 @@ function measure_init() {
     var download_link = document.getElementById('download-result');
     download_link.addEventListener('click', function() {
 	download_result(download_link) },  false);
-    download_link.style.opacity = 0;  // only show after there is an image.
+    document.getElementById('download-form').style.opacity = 0;
+    download_link.style.cursor = "default";
+}
+
+function init_download(filename) {
+    var pos = filename.lastIndexOf(".");
+    if (pos > 0) {
+	filename = filename.substr(0, pos);
+    }
+    var download_link = document.getElementById('download-result');
+    download_link.download = "augenmass-" + filename + ".png";
+    download_link.style.cursor = "pointer";
+    document.getElementById('download-form').style.opacity = 1;
 }
 
 function download_result(download_link) {
-    // We temporarily use the measure canvas to combine everything.
-    measure_ctx.drawImage(backgroundImage, 0, 0);
-    drawAllNoClear(measure_ctx);
+    if (backgroundImage === undefined)
+	return;
+    var with_background_checkbox = document.getElementById('include-background');
+    if (with_background_checkbox.checked == true) {
+	// We temporarily use the measure canvas to combine everything.
+	measure_ctx.drawImage(backgroundImage, 0, 0);
+	drawAllNoClear(measure_ctx);
+    } else {
+	drawAll();
+    }
     download_link.href = measure_canvas.toDataURL('image/png');
 }
 
@@ -512,7 +537,7 @@ function load_background_image(chooser) {
 
 	    updateHelpLevel(HelpLevelEnum.HELP_START_LINE);
 	    backgroundImage = new_img;
-	    document.getElementById('download-result').style.opacity = 1;
+	    init_download(chooser.files[0].name);
 	}
 	new_img.src = e.target.result;
     }

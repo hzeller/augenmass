@@ -8,8 +8,12 @@
         color: #fff;
         font-size: 10pt;
       }
+      form {
+        display: inline;
+      }
       #helptext {
-        padding-left: 5em;
+        padding-left: 1em;
+        font-weight: bold;
       }
       canvas {
         position: absolute;
@@ -29,10 +33,9 @@
         opacity: 0;
         box-shadow: 3px 3px 15px;
         border-radius: 10px;
-        color: #000;  // shadow color.
+        color: #000;  // influences shadow color.
       }
       #download-result {
-        cursor: pointer;
         font-size: larger;
         font-weight: bold;
         color: #11f;
@@ -47,9 +50,12 @@
   <body style="font-family: sans-serif;">
     <form>
       <input id="file-chooser" type="file" accept="image/*">
-      <a id="download-result" download="augenmass-result.png">[Save Result]</a>
-      <span id="helptext"></span>
     </form>
+    <form id="download-form">
+      <a id="download-result" download="augenmass-result.png">[Save Result]</a>
+      <input type="checkbox" id="include-background"><label style="font-size: smaller;" for="include-background">Include background image (might cause memory trouble).</label>
+    </form>
+    <span id="helptext"></span>
     <canvas id="background-img" width="50" height="50"></canvas>
     <canvas id="measure" width="50" height="50" style="cursor:url(target-cursor.png) 15 15,crosshair;"></canvas>
     <canvas id="loupe" width="280" height="280"></canvas>
