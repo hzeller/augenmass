@@ -331,8 +331,22 @@ function showLoupe(x, y) {
     loupe_ctx.stroke();
 }
 
-function moveOp(x, y) {
+var fading_loupe_t;
+function showFadingLoupe(x, y) {
+    if (fading_loupe_t != undefined)
+	clearTimeout(fading_loupe_t);
+    loupe_canvas.style.transition = "left 0.3s, opacity 0s";
+    loupe_canvas.style.opacity = 1;
     showLoupe(x, y);
+    // Stay a couple of seconds, then fade away.
+    fading_loupe_t = setTimeout(function() {
+	loupe_canvas.style.transition = "left 0.3s, opacity 5s";
+	loupe_canvas.style.opacity = 0;
+    }, 8000);
+}
+
+function moveOp(x, y) {
+    showFadingLoupe(x, y);
     if (current_line == undefined)
 	return;
     current_line.updatePos(x, y);
