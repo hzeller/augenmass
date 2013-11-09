@@ -260,24 +260,39 @@ function drawAll() {
     }
 }
 
+function showQuadBracket(loupe_ctx, loupe_size, bracket_len) {
+    loupe_ctx.moveTo(0, bracket_len);                 // top left.
+    loupe_ctx.lineTo(bracket_len, bracket_len);
+    loupe_ctx.lineTo(bracket_len, 0);
+    loupe_ctx.moveTo(0, loupe_size - bracket_len);   // bottom left.
+    loupe_ctx.lineTo(bracket_len, loupe_size - bracket_len);
+    loupe_ctx.lineTo(bracket_len, loupe_size);
+    loupe_ctx.moveTo(loupe_size - bracket_len, 0);     // top right.
+    loupe_ctx.lineTo(loupe_size - bracket_len, bracket_len);
+    loupe_ctx.lineTo(loupe_size, bracket_len);         // bottom right.
+    loupe_ctx.moveTo(loupe_size - bracket_len, loupe_size);
+    loupe_ctx.lineTo(loupe_size - bracket_len, loupe_size - bracket_len);
+    loupe_ctx.lineTo(loupe_size, loupe_size - bracket_len);
+}
+
 function showLoupe(x, y) {
     if (backgroundImage === undefined || loupe_ctx === undefined)
 	return;
     var frame_x = x - scrollLeft();
     var frame_y = y - scrollTop();
-    if (frame_x < 1.5 * loupe_canvas.width
+    if (frame_x < 1.1 * loupe_canvas.width
 	&& frame_y < 1.1 * loupe_canvas.height) {
-	loupe_canvas.style.left = (2 * loupe_canvas.width) + "px";
-    } else if (frame_x > 1.7 * loupe_canvas.width
+	loupe_canvas.style.left = (1.4 * loupe_canvas.width) + "px";
+    } else if (frame_x > 1.2 * loupe_canvas.width
 	       || frame_y > 1.2 * loupe_canvas.height) {
 	// Little hysteresis on transitioning back
 	loupe_canvas.style.left = "10px";
     }
-    var loupe_factor = 5;
-    var loupe_width = loupe_ctx.canvas.width;
+    var loupe_factor = 7;
+    var loupe_size = loupe_ctx.canvas.width;
     var img_x = backgroundImage.width;
     var img_y = backgroundImage.height;
-    var crop_size = loupe_width/loupe_factor;
+    var crop_size = loupe_size/loupe_factor;  // the small square we want to enlarge.
     var start_x = x - crop_size/2;
     var start_y = y - crop_size/2;
     var off_x = 0, off_y = 0;
@@ -287,23 +302,32 @@ function showLoupe(x, y) {
     var end_y = y + crop_size/2;
     end_x = end_x < img_x ? end_x : img_x;
     end_y = end_y < img_y ? end_y : img_y;
-    var crop_w = (end_x - start_x);
-    var crop_h = (end_y - start_y);
+    var crop_w = (end_x - start_x) + 1;
+    var crop_h = (end_y - start_y) + 1;
     loupe_ctx.fillStyle = "#777";
-    loupe_ctx.fillRect(0, 0, loupe_width, loupe_width);
-
+    loupe_ctx.fillRect(0, 0, loupe_size, loupe_size);
+    off_x -= 0.5;
+    off_y -= 0.5;
     loupe_ctx.drawImage(backgroundImage,
 			start_x, start_y, crop_w, crop_h,
 			off_x * loupe_factor, off_y * loupe_factor,
 			loupe_factor * crop_w, loupe_factor * crop_h);
 
     loupe_ctx.beginPath();
-    loupe_ctx.strokeStyle = '#000';
+    loupe_ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
     loupe_ctx.lineWidth = 1;
-    loupe_ctx.moveTo(0, loupe_width/2);
-    loupe_ctx.lineTo(loupe_width, loupe_width/2);
-    loupe_ctx.moveTo(loupe_width/2, 0);
-    loupe_ctx.lineTo(loupe_width/2, loupe_width);
+    // draw four brackets enclosing the pixel in question.
+    var bracket_len = (loupe_size - loupe_factor)/2;
+    showQuadBracket(loupe_ctx, loupe_size, bracket_len);
+    loupe_ctx.stroke();
+    loupe_ctx.beginPath();
+    loupe_ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+    showQuadBracket(loupe_ctx, loupe_size, bracket_len - 1);
+    loupe_ctx.stroke();
+
+    loupe_ctx.beginPath();
+    loupe_ctx.fillStyle = "#000";
+    loupe_ctx.fillText("(" + x + "," + y + ")", 10, 30);
     loupe_ctx.stroke();
 }
 
@@ -412,6 +436,10 @@ function measure_init() {
 
     loupe_canvas = document.getElementById('loupe');
     loupe_ctx = loupe_canvas.getContext('2d');
+    // We want to see the pixels:
+    loupe_ctx.imageSmoothingEnabled = false;
+    loupe_ctx.mozImageSmoothingEnabled = false;
+    loupe_ctx.webkitImageSmoothingEnabled = false;
 
     init_measure_canvas(100, 100);
 
