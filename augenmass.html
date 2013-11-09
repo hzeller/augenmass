@@ -1,18 +1,19 @@
 <html>
   <head>
-    <link rel="icon" type="image/png" href="tabicon.png"/>
+    <link rel="icon" type="image/png" href="icons/tabicon.png"/>
     <script src="augenmass.js"></script>
     <style>
       body {
         background: #777;
-      }
-      #helptext {
         color: #fff;
         font-size: 10pt;
       }
+      #helptext {
+        padding-left: 5em;
+      }
       canvas {
         position: absolute;
-        top: 2em;
+        top: 3em;
         left: 10px;
         background: transparent;
       }
@@ -29,14 +30,25 @@
         box-shadow: 3px 3px 15px;
         border-radius: 10px;
       }
+      #download-result {
+        cursor: pointer;
+        font-size: larger;
+        font-weight: bold;
+        color: #11f;
+        background: #999;
+        padding: 2px;
+      }
+      #download:hover {
+	color: #fff;
+      }
     </style>
   </head>
   <body style="font-family: sans-serif;">
     <form>
       <input id="file-chooser" type="file" accept="image/*">
+      <a id="download-result" download="augenmass-result.png">[Save Result]</a>
       <span id="helptext"></span>
     </form>
-
     <canvas id="background-img" width="50" height="50"></canvas>
     <canvas id="measure" width="50" height="50" style="cursor:url(target-cursor.png) 15 15,crosshair;"></canvas>
     <canvas id="loupe" width="280" height="280"></canvas>

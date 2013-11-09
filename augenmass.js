@@ -18,15 +18,17 @@ function euklid_distance(x1, y1, x2, y2) {
 }
 
 function Line(x1, y1, x2, y2) {
-    this.x1 = x1;
-    this.y1 = y1;
-    this.x2 = x2;
-    this.y2 = y2;
+    // The canvas coordinate system numbers the space _between_ pixels
+    // as full coordinage. Correct for that.
+    this.x1 = x1 + 0.5;
+    this.y1 = y1 + 0.5;
+    this.x2 = x2 + 0.5;
+    this.y2 = y2 + 0.5;
 
     // While editing: updating second end of the line.
     this.updatePos = function(x2, y2) {
-	this.x2 = x2;
-	this.y2 = y2;
+	this.x2 = x2 + 0.5;
+	this.y2 = y2 + 0.5;
     }
 
     // Helper for determining selection: how far is the given position from the
@@ -247,11 +249,15 @@ function addLine(line) {
 // Draw all the lines!
 function drawAll() {
     measure_ctx.clearRect(0, 0, measure_canvas.width, measure_canvas.height);
+    drawAllNoClear(measure_ctx);
+}
+
+function drawAllNoClear(ctx) {
     for (i=0; i < lines.length; ++i) {
-	lines[i].draw(measure_ctx, print_factor, false);
+	lines[i].draw(ctx, print_factor, false);
     }
     if (current_line != undefined) {
-	current_line.draw_editline(measure_ctx, print_factor);
+	current_line.draw_editline(ctx, print_factor);
     }
 }
 
@@ -471,6 +477,18 @@ function measure_init() {
     chooser.addEventListener("change", function(e) {
 	load_background_image(chooser);
     });
+
+    var download_link = document.getElementById('download-result');
+    download_link.addEventListener('click', function() {
+	download_result(download_link) },  false);
+    download_link.style.opacity = 0;  // only show after there is an image.
+}
+
+function download_result(download_link) {
+    // We temporarily use the measure canvas to combine everything.
+    measure_ctx.drawImage(backgroundImage, 0, 0);
+    drawAllNoClear(measure_ctx);
+    download_link.href = measure_canvas.toDataURL('image/png');
 }
 
 function load_background_image(chooser) {
@@ -494,6 +512,7 @@ function load_background_image(chooser) {
 
 	    updateHelpLevel(HelpLevelEnum.HELP_START_LINE);
 	    backgroundImage = new_img;
+	    document.getElementById('download-result').style.opacity = 1;
 	}
 	new_img.src = e.target.result;
     }
