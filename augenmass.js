@@ -290,8 +290,8 @@ function showLoupe(x, y) {
     }
     var loupe_factor = 7;
     var loupe_size = loupe_ctx.canvas.width;
-    var img_x = backgroundImage.width;
-    var img_y = backgroundImage.height;
+    var img_max_x = backgroundImage.width - 1;
+    var img_max_y = backgroundImage.height - 1;
     var crop_size = loupe_size/loupe_factor;  // the small square we want to enlarge.
     var start_x = x - crop_size/2;
     var start_y = y - crop_size/2;
@@ -300,8 +300,8 @@ function showLoupe(x, y) {
     if (start_y < 0) { off_y = -start_y; start_y = 0; }
     var end_x = x + crop_size/2;
     var end_y = y + crop_size/2;
-    end_x = end_x < img_x ? end_x : img_x;
-    end_y = end_y < img_y ? end_y : img_y;
+    end_x = end_x < img_max_x ? end_x : img_max_x;
+    end_y = end_y < img_max_y ? end_y : img_max_y;
     var crop_w = (end_x - start_x) + 1;
     var crop_h = (end_y - start_y) + 1;
     loupe_ctx.fillStyle = "#777";
