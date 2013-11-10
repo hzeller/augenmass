@@ -6,12 +6,11 @@
  * - select: left click selects a line (endpoints and center). Highlight;
  *   del deletes.
  * - make more 'object oriented'.
- * - show currently drawn line in loupe.
  * - shift + mouse movement: only allow for discrete 360/16 angles.
  * - provide a 'reference straight line' defining the 0 degree angle.
  * - 'collision detection' for length labels.
  * - download should return a PDF with the compressed background image and
- *   vector lines on top.
+ *   vector lines on top (or SVG).
  */
 
 // Some constants.
@@ -54,6 +53,27 @@ function Line(x1, y1, x2, y2) {
 	var dy = remote_y - y;
 	ctx.moveTo(x - Tlen * dy/len, y + Tlen * dx/len);
 	ctx.lineTo(x + Tlen * dy/len, y - Tlen * dx/len);
+    }
+
+    // Very simple line, as shown in the loupe-view.
+    this.draw_loupe_line = function(ctx, off_x, off_y, factor) {
+	// these 0.5 offsets seem to look inconclusive on Chrome and Firefox.
+	// Need to go deeper.
+	ctx.beginPath();
+	var x1pos = (this.x1 - off_x), y1pos = (this.y1 - off_y);
+	var x2pos = (this.x2 - off_x), y2pos = (this.y2 - off_y);
+	ctx.moveTo(x1pos * factor, y1pos * factor);
+	ctx.lineTo(x2pos * factor, y2pos * factor);
+	ctx.stroke();
+	// We want circles that circumreference the pixel in question.
+	ctx.beginPath();
+	ctx.arc(x1pos * factor + 0.5, y1pos * factor + 0.5,
+		1.5 * factor/2, 0, 2*Math.PI);
+	ctx.stroke();
+	ctx.beginPath();
+	ctx.arc(x2pos * factor + 0.5, y2pos * factor + 0.5,
+		1.5 * factor/2, 0, 2*Math.PI);
+	ctx.stroke();
     }
 
     // Drawing the line while editing.
@@ -338,6 +358,19 @@ function showLoupe(x, y) {
     loupe_ctx.fillStyle = "#000";
     loupe_ctx.fillText("(" + x + "," + y + ")", 10, 30);
     loupe_ctx.stroke();
+
+    // Draw all the lines in the loupe; better 'high resolution' view.
+    loupe_ctx.strokeStyle = '#00F';
+    var l_off_x = x - crop_size/2 + 0.5
+    var l_off_y = y - crop_size/2 + 0.5;
+    for (i=0; i < lines.length; ++i) {
+	lines[i].draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
+				 loupe_magnification);
+    }
+    if (current_line != undefined) {
+	current_line.draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
+				     loupe_magnification);
+    }
 }
 
 var fading_loupe_timer;
@@ -355,10 +388,12 @@ function showFadingLoupe(x, y) {
 }
 
 function moveOp(x, y) {
+    if (current_line != undefined) {
+	current_line.updatePos(x, y);
+    }
     showFadingLoupe(x, y);
     if (current_line == undefined)
 	return;
-    current_line.updatePos(x, y);
     drawAll();
 }
 
