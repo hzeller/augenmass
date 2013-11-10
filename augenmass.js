@@ -9,8 +9,8 @@
  * - shift + mouse movement: only allow for discrete 360/16 angles.
  * - provide a 'reference straight line' defining the 0 degree angle.
  * - 'collision detection' for length labels.
- * - download should return a PDF with the compressed background image and
- *   vector lines on top (or SVG).
+ * - export as SVG that includes the original image.
+ *   (exporting just an image with the lines on top crashes browsers)
  */
 
 // Some constants.
@@ -532,7 +532,7 @@ function measure_init() {
     var download_link = document.getElementById('download-result');
     download_link.addEventListener('click', function() {
 	download_result(download_link) },  false);
-    document.getElementById('download-form').style.opacity = 0;
+    download_link.style.opacity = 0;
     download_link.style.cursor = "default";
 }
 
@@ -544,20 +544,13 @@ function init_download(filename) {
     var download_link = document.getElementById('download-result');
     download_link.download = "augenmass-" + filename + ".png";
     download_link.style.cursor = "pointer";
-    document.getElementById('download-form').style.opacity = 1;
+    download_link.style.opacity = 1;
 }
 
 function download_result(download_link) {
     if (backgroundImage === undefined)
 	return;
-    var with_background_checkbox = document.getElementById('include-background');
-    if (with_background_checkbox.checked == true) {
-	// We temporarily use the measure canvas to combine everything.
-	measure_ctx.drawImage(backgroundImage, 0, 0);
-	drawAllNoClear(measure_ctx);
-    } else {
-	drawAll();
-    }
+    drawAll();
     download_link.href = measure_canvas.toDataURL('image/png');
 }
 
