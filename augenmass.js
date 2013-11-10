@@ -5,7 +5,7 @@
  * - two modes: draw, select
  * - select: left click selects a line (endpoints and center). Highlight;
  *   del deletes.
- * - make more 'object oriented'.
+ * - clean up. Put things with their own state in objects.
  * - shift + mouse movement: only allow for discrete 360/16 angles.
  * - provide a 'reference straight line' defining the 0 degree angle.
  * - 'collision detection' for length labels.
@@ -306,16 +306,26 @@ function showQuadBracket(loupe_ctx, loupe_size, bracket_len) {
 function showLoupe(x, y) {
     if (backgroundImage === undefined || loupe_ctx === undefined)
 	return;
+
+    // if we can fit the loupe right of the image, let's do it. Otherwise
+    // it is in the top left corner, with some volatility to escape the cursor.
     var frame_x = x - scrollLeft();
     var frame_y = y - scrollTop();
-    if (frame_x < 1.1 * loupe_canvas.width
-	&& frame_y < 1.1 * loupe_canvas.height) {
-	loupe_canvas.style.left = (1.4 * loupe_canvas.width) + "px";
-    } else if (frame_x > 1.2 * loupe_canvas.width
-	       || frame_y > 1.2 * loupe_canvas.height) {
-	// Little hysteresis on transitioning back
-	loupe_canvas.style.left = "10px";
+    if (backgroundImage.width + loupe_canvas.width + 20
+	< document.body.clientWidth) {
+	// Lens fits comfortably on the right
+	loupe_canvas.style.left = backgroundImage.width + 20
+    } else {
+	if (frame_x < 1.1 * loupe_canvas.width
+	    && frame_y < 1.1 * loupe_canvas.height) {
+	    loupe_canvas.style.left = (1.4 * loupe_canvas.width) + "px";
+	} else if (frame_x > 1.2 * loupe_canvas.width
+		   || frame_y > 1.2 * loupe_canvas.height) {
+	    // Little hysteresis on transitioning back
+	    loupe_canvas.style.left = "10px";
+	}
     }
+
     var loupe_size = loupe_ctx.canvas.width;
     var img_max_x = backgroundImage.width - 1;
     var img_max_y = backgroundImage.height - 1;
