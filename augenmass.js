@@ -14,7 +14,16 @@
  */
 
 // Some constants.
-var white_background_style = 'rgba(255, 255, 255, 0.4)';
+
+// How lines usually look like (blue with yellow background should make
+// it sufficiently distinct in many images).
+var line_style = "#00f";
+var background_line_style = 'rgba(255, 255, 0, 0.4)';
+
+// On highlight.
+var highlight_line_style = "#f00";
+var background_highlight_line_style = 'rgba(0, 255, 255, 0.4)';
+
 var text_font_pixels = 18;
 var loupe_magnification = 7;
 
@@ -96,7 +105,7 @@ function Line(x1, y1, x2, y2) {
 
 	// White background for t-line
 	ctx.beginPath();
-	ctx.strokeStyle = white_background_style;
+	ctx.strokeStyle = background_line_style;
 	ctx.lineWidth = 10;
 	ctx.lineCap = 'round';
 	this.draw_t(ctx, this.x1, this.y1, this.x2, this.y2);
@@ -129,7 +138,7 @@ function Line(x1, y1, x2, y2) {
 		text_dy = -dy * (text_font_pixels + 10)/(2 * pixel_len);
 	    }
 	    ctx.beginPath();
-	    ctx.strokeStyle = white_background_style;
+	    ctx.strokeStyle = background_line_style;
 	    ctx.lineWidth = text_font_pixels + 10;
 	    ctx.lineCap = 'round';
 	    // We added the text_font_pixels above, so remove them here: the
@@ -157,9 +166,9 @@ function Line(x1, y1, x2, y2) {
 	ctx.beginPath();
 	// Some white background.
 	if (highlight) {
-	    ctx.strokeStyle = 'rgba(255, 255, 0, 0.4)';
+	    ctx.strokeStyle = background_highlight_line_style;
 	} else {
-	    ctx.strokeStyle = white_background_style;
+	    ctx.strokeStyle = background_line_style;
 	}
 	ctx.lineWidth = 10;
 	ctx.lineCap = 'round';
@@ -183,9 +192,9 @@ function Line(x1, y1, x2, y2) {
 	ctx.beginPath();
 	// actual line
 	if (highlight) {
-	    ctx.strokeStyle = 'rgba(0, 0, 255, 1.0)';
+	    ctx.strokeStyle = highlight_line_style;
 	} else {
-	    ctx.strokeStyle = 'rgba(0, 0, 0, 1.0)';
+	    ctx.strokeStyle = line_style;
 	}
 	ctx.lineWidth = 1;
 	ctx.moveTo(this.x1, this.y1);
@@ -370,16 +379,27 @@ function showLoupe(x, y) {
     loupe_ctx.stroke();
 
     // Draw all the lines in the loupe; better 'high resolution' view.
-    loupe_ctx.strokeStyle = '#00F';
-    var l_off_x = x - crop_size/2 + 0.5
-    var l_off_y = y - crop_size/2 + 0.5;
-    for (i=0; i < lines.length; ++i) {
-	lines[i].draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
-				 loupe_magnification);
-    }
-    if (current_line != undefined) {
-	current_line.draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
+    for (style = 0; style < 2; ++style) {
+	switch (style) {
+	case 0:
+	    loupe_ctx.strokeStyle = background_line_style;
+	    loupe_ctx.lineWidth = loupe_magnification;
+	    break;
+	case 1:
+	    loupe_ctx.strokeStyle = line_style;
+	    loupe_ctx.lineWidth = 1;
+	    break;
+	}
+	var l_off_x = x - crop_size/2 + 0.5
+	var l_off_y = y - crop_size/2 + 0.5;
+	for (i=0; i < lines.length; ++i) {
+	    lines[i].draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
 				     loupe_magnification);
+	}
+	if (current_line != undefined) {
+	    current_line.draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
+					 loupe_magnification);
+	}
     }
 }
 
