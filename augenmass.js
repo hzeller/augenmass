@@ -1,6 +1,13 @@
 /* -*- JavaScript -*- */
 /*
  * potential TODO
+ * - put loupe always rightmost, not leftmost (there it is annoying).
+ * - provide chained lines with angles displayed between them (could be
+ *   default mode at first, until there are modes)
+ * - circle radius estimation (separate mode)
+ *    o three dots circle, 4 ellipsis,  but allow multiple dots
+ *      and minimize error.
+ *    o axis where the center would be plus two dots.
  * - draw current line in separate canvas to simplify redraw (and faster).
  * - two modes: draw, select
  * - select: left click selects a line (endpoints and center). Highlight;
