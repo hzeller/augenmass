@@ -1,6 +1,8 @@
 /* -*- JavaScript -*- */
 /*
  * potential TODO
+ * - clean up. This is mostly experimental code right now figuring out how
+ *   JavaScript works and stuff :) Put things with their own state in objects.
  * - put loupe always rightmost, not leftmost (there it is annoying).
  * - provide chained lines with angles displayed between them (could be
  *   default mode at first, until there are modes)
@@ -12,7 +14,6 @@
  * - two modes: draw, select
  * - select: left click selects a line (endpoints and center). Highlight;
  *   del deletes.
- * - clean up. Put things with their own state in objects.
  * - shift + mouse movement: only allow for discrete 360/16 angles.
  * - provide a 'reference straight line' defining the 0 degree angle.
  * - 'collision detection' for length labels.
@@ -325,21 +326,24 @@ function showLoupe(x, y) {
 
     // if we can fit the loupe right of the image, let's do it. Otherwise
     // it is in the top left corner, with some volatility to escape the cursor.
-    var frame_x = x - scrollLeft();
-    var frame_y = y - scrollTop();
-    if (backgroundImage.width + loupe_canvas.width + 20
-	< document.body.clientWidth) {
-	// Lens fits comfortably on the right
-	loupe_canvas.style.left = backgroundImage.width + 20
-    } else {
-	if (frame_x < 1.1 * loupe_canvas.width
-	    && frame_y < 1.1 * loupe_canvas.height) {
-	    loupe_canvas.style.left = (1.4 * loupe_canvas.width) + "px";
-	} else if (frame_x > 1.2 * loupe_canvas.width
-		   || frame_y > 1.2 * loupe_canvas.height) {
-	    // Little hysteresis on transitioning back
-	    loupe_canvas.style.left = "10px";
-	}
+    var cursor_in_frame_x = x - scrollLeft();
+    var cursor_in_frame_y = y - scrollTop() + measure_canvas.offsetTop;
+
+    // Let's see if we have any overlap with the loupe - if so, move it
+    // out of the way.
+    var top_default = 10;
+    var left_loupe_edge = document.body.clientWidth - loupe_canvas.width - 10;
+    if (backgroundImage.width + 40 < left_loupe_edge)
+	left_loupe_edge = backgroundImage.width + 40;
+    loupe_canvas.style.left = left_loupe_edge;
+
+    // Little hysteresis while moving in and out
+    if (cursor_in_frame_x > left_loupe_edge - 20
+	&& cursor_in_frame_y < loupe_canvas.height + top_default + 20) {
+	loupe_canvas.style.top = loupe_canvas.height + top_default + 60;
+    } else if (cursor_in_frame_x < left_loupe_edge - 40
+	       || cursor_in_frame_y > loupe_canvas.height + top_default + 40) {
+	loupe_canvas.style.top = top_default;
     }
 
     var loupe_size = loupe_ctx.canvas.width;
@@ -414,17 +418,19 @@ var fading_loupe_timer;
 function showFadingLoupe(x, y) {
     if (fading_loupe_timer != undefined)
 	clearTimeout(fading_loupe_timer);   // stop scheduled fade-out.
-    loupe_canvas.style.transition = "left 0.3s, opacity 0s";
+    loupe_canvas.style.transition = "top 0.3s, opacity 0s";
     loupe_canvas.style.opacity = 1;
     showLoupe(x, y);
     // Stay a couple of seconds, then fade away.
     fading_loupe_timer = setTimeout(function() {
-	loupe_canvas.style.transition = "left 0.3s, opacity 5s";
+	loupe_canvas.style.transition = "top 0.3s, opacity 5s";
 	loupe_canvas.style.opacity = 0;
     }, 8000);
 }
 
 function moveOp(x, y) {
+    if (backgroundImage === undefined)
+	return;
     if (current_line != undefined) {
 	current_line.updatePos(x, y);
     }
@@ -532,6 +538,7 @@ function measure_init() {
     measure_ctx = measure_canvas.getContext('2d');
 
     loupe_canvas = document.getElementById('loupe');
+    loupe_canvas.style.left = document.body.clientWidth - loupe_canvas.width - 10;
     loupe_ctx = loupe_canvas.getContext('2d');
     // We want to see the pixels:
     loupe_ctx.imageSmoothingEnabled = false;
