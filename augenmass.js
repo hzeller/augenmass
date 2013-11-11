@@ -540,7 +540,7 @@ function measure_init() {
 
     init_measure_canvas(100, 100);   // Some default until we have an image.
 
-    measure_canvas.addEventListener("click", function(e) {
+    measure_canvas.addEventListener("mousedown", function(e) {
 	extract_event_pos(e, clickOp);
     });
     measure_canvas.addEventListener("mousemove", function(e) {
