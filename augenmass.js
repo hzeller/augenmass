@@ -295,6 +295,9 @@ function AugenmassController(canvas, view) {
     canvas.addEventListener("mousedown", function(e) {
 	extract_event_pos(e, onClick);
     });
+    canvas.addEventListener("contextmenu", function(e) {
+	e.preventDefault();
+    });
     canvas.addEventListener("mousemove", function(e) {
 	extract_event_pos(e, onMove);
     });
@@ -317,20 +320,26 @@ function AugenmassController(canvas, view) {
 	x -= canvas.offsetLeft;
 	y -= canvas.offsetTop;
 	
-	callback(x, y);
+	callback(e, x, y);
     }
 
     function getModel() { return view.getModel(); }
     function getView() { return view; }
 
-    function onKeyEvent(e) {
-	if (e.keyCode == 27 && getModel().hasEditLine()) {  // ESC key.
+    function cancelCurrentLine() {
+	if (getModel().hasEditLine()) {
 	    getModel().forgetEditLine();
 	    getView().drawAll();
 	}
     }
+    
+    function onKeyEvent(e) {
+	if (e.keyCode == 27) {  // ESC key.
+	    cancelCurrentLine();
+	}
+    }
 
-    function onMove(x, y) {
+    function onMove(e, x, y) {
 	if (backgroundImage === undefined)
 	    return;
 	var has_editline = getModel().hasEditLine();
@@ -343,7 +352,12 @@ function AugenmassController(canvas, view) {
 	getView().drawAll();
     }
     
-    function onClick(x, y) {
+    function onClick(e, x, y) {
+	if (e.which != undefined && e.which == 3) {
+	    // right mouse button.
+	    cancelCurrentLine();
+	    return;
+	}
 	var now = new Date().getTime();
 	if (!getModel().hasEditLine()) {
 	    getModel().startEditLine(x, y);
@@ -365,7 +379,8 @@ function AugenmassController(canvas, view) {
 	getView().drawAll();
     }
 
-    function onDoubleClick(x, y) {
+    function onDoubleClick(e, x, y) {
+	cancelCurrentLine();
 	var selected_line = getModel().findClosest(x, y);
 	if (selected_line == undefined)
 	    return;
