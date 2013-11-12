@@ -226,6 +226,7 @@ function Line(x1, y1, x2, y2) {
     }
 }
 
+var help_system;
 var measure_canvas;
 var measure_ctx;
 var loupe_canvas;
@@ -246,42 +247,43 @@ HelpLevelEnum = {
     HELP_SET_LEN:       3,
     HELP_YOU_ARE_EXPERT_NOW: 4
 };
-
-var last_help_level = -1;
-function updateHelpLevel(requested_level) {
-    if (requested_level < last_help_level)
-	return;
-    last_help_level = requested_level;
-    var help_text = undefined;
-    switch (requested_level) {
-    case HelpLevelEnum.HELP_FILE_LOADING:
-	help_text = "(Only your browser reads the image. It is not uploaded anywhere.)"
-	break;
-    case HelpLevelEnum.HELP_START_LINE:
-	help_text = "Click somewhere to start a line.";
-	break;
-    case HelpLevelEnum.HELP_FINISH_LINE:
-	help_text = "A second click finishes the line. Or Cancel with 'Esc'.";
-	break;
-    case HelpLevelEnum.HELP_SET_LEN:
-	help_text = "Double click on length to set relative size.";
-	break;
-    case HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW:
-	help_text = "Congratulations - you are an expert now!";
-	break;
-    }
-    if (help_text != undefined) {
-	var helptext_span = document.getElementById('helptext');
-	while (helptext_span.firstChild) {
-	    helptext_span.removeChild(helptext.firstChild);
+function HelpSystem(helptext_span) {
+    this.printLevel = function(requested_level) {
+	if (requested_level < this.last_help_level_)
+	    return;
+	this.last_help_level_ = requested_level;
+	var help_text = undefined;
+	switch (requested_level) {
+	case HelpLevelEnum.HELP_FILE_LOADING:
+	    help_text = "(Only your browser reads the image. It is not uploaded anywhere.)"
+	    break;
+	case HelpLevelEnum.HELP_START_LINE:
+	    help_text = "Click somewhere to start a line.";
+	    break;
+	case HelpLevelEnum.HELP_FINISH_LINE:
+	    help_text = "A second click finishes the line. Or Cancel with 'Esc'.";
+	    break;
+	case HelpLevelEnum.HELP_SET_LEN:
+	    help_text = "Double click on length to set relative size.";
+	    break;
+	case HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW:
+	    help_text = "Congratulations - you are an expert now!";
+	    break;
 	}
-	helptext_span.appendChild(document.createTextNode(help_text));
-
-	if (requested_level == HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW) {
-	    helptext_span.style.transition = "opacity 10s";
-	    helptext_span.style.opacity = 0;
+	if (help_text != undefined) {
+	    while (helptext_span.firstChild) {
+		helptext_span.removeChild(helptext.firstChild);
+	    }
+	    helptext_span.appendChild(document.createTextNode(help_text));
+	    
+	    if (requested_level == HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW) {
+		helptext_span.style.transition = "opacity 10s";
+		helptext_span.style.opacity = 0;
+	    }
 	}
     }
+
+    this.last_help_level_ = -1;
 }
 
 // Add a new measuring line to the list.
@@ -445,7 +447,7 @@ function clickOp(x, y) {
     if (current_line == undefined) {
 	current_line = new Line(x, y, x, y);
 	start_line_time = now;
-	updateHelpLevel(HelpLevelEnum.HELP_FINISH_LINE);
+	help_system.printLevel(HelpLevelEnum.HELP_FINISH_LINE);
     } else {
 	current_line.updatePos(x, y);
 	// Make sure that this was not a double-click event.
@@ -453,7 +455,7 @@ function clickOp(x, y) {
 	if (current_line.length() > 50
 	    || (current_line.length() > 0 && (now - start_line_time) > 500)) {
 	    addLine(current_line);
-	    updateHelpLevel(HelpLevelEnum.HELP_SET_LEN);
+	    help_system.printLevel(HelpLevelEnum.HELP_SET_LEN);
 	}
 
 	current_line = undefined;
@@ -482,7 +484,7 @@ function doubleClickOp(x, y) {
 		print_factor = new_value / selected_line.length();
 	    }
 	}
-	updateHelpLevel(HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW);
+	help_system.printLevel(HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW);
 	drawAll();
     }
 }
@@ -533,7 +535,8 @@ function init_measure_canvas(width, height) {
 
 // Init function. Call once on page-load.
 function measure_init() {
-    updateHelpLevel(HelpLevelEnum.HELP_FILE_LOADING);
+    help_system = new HelpSystem(document.getElementById('helptext'));
+    help_system.printLevel(HelpLevelEnum.HELP_FILE_LOADING);
     measure_canvas = document.getElementById('measure');
     measure_ctx = measure_canvas.getContext('2d');
 
@@ -607,7 +610,7 @@ function load_background_image(chooser) {
 	    
 	    init_measure_canvas(new_img.width, new_img.height);
 
-	    updateHelpLevel(HelpLevelEnum.HELP_START_LINE);
+	    help_system.printLevel(HelpLevelEnum.HELP_START_LINE);
 	    backgroundImage = new_img;
 	    init_download(chooser.files[0].name);
 	}
