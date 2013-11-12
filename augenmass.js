@@ -232,10 +232,63 @@ var measure_ctx;
 var loupe_canvas;
 var loupe_ctx;
 var print_factor;
-var lines;
-var current_line;
+var measure_model;
 var start_line_time;
 var backgroundImage;  // if loaded.
+
+function MeasureModel() {
+    this.lines_ = new Array();
+    this.current_line_ = undefined;
+
+    // -- editing operation. We start a line and eventually commit or forget it.
+
+    // Start a new line but does not add it to the model yet.
+    this.startEditLine = function(x, y) {
+	this.current_line_ = new Line(x, y, x, y);
+    }
+    this.hasEditLine = function() { return this.current_line_ != undefined; }
+    this.getEditLine = function() { return this.current_line_; }
+    this.commitEditLine = function() {
+	this.lines_[this.lines_.length] = this.current_line_;
+	this.current_line_ = undefined;
+    }
+    this.forgetEditLine = function() {
+	this.current_line_ = undefined;
+    }
+
+    // Remove a line
+    this.removeLine = function(line) {
+	var pos = this.lines_.indexOf(line);
+	if (pos < 0) alert("Should not happen: Removed non-existent line");
+	this.lines_.splice(pos, 1);
+    }
+
+    // Find the closest line to the given coordinate or 'undefined', if they
+    // are all too remote.
+    this.findClosest = function(x, y) {
+	var smallest_distance = undefined;
+	var selected_line = undefined;
+	this.forAllLines(function(line) {
+	    var this_distance = line.distanceToCenter(x, y);
+	    if (smallest_distance == undefined
+		|| this_distance < smallest_distance) {
+		smallest_distance = this_distance;
+		selected_line = line;
+	    }
+	})
+	if (selected_line && smallest_distance < 50) {
+	    return selected_line;
+	}
+	return undefined;
+    }
+
+    // Callback that returns a line.
+    this.forAllLines = function(cb) {
+	for (i=0; i < this.lines_.length; ++i) {
+	    cb(this.lines_[i]);
+	}
+    }
+}
 
 // We show different help levels. After each stage the user successfully
 // performs, the next level is shown. Once the user managed all of them,
@@ -248,6 +301,8 @@ HelpLevelEnum = {
     HELP_YOU_ARE_EXPERT_NOW: 4
 };
 function HelpSystem(helptext_span) {
+    this.last_help_level_ = -1;
+
     this.printLevel = function(requested_level) {
 	if (requested_level < this.last_help_level_)
 	    return;
@@ -282,13 +337,6 @@ function HelpSystem(helptext_span) {
 	    }
 	}
     }
-
-    this.last_help_level_ = -1;
-}
-
-// Add a new measuring line to the list.
-function addLine(line) {
-    lines[lines.length] = line;
 }
 
 // Draw all the lines!
@@ -298,11 +346,11 @@ function drawAll() {
 }
 
 function drawAllNoClear(ctx) {
-    for (i=0; i < lines.length; ++i) {
-	lines[i].draw(ctx, print_factor, false);
-    }
-    if (current_line != undefined) {
-	current_line.draw_editline(ctx, print_factor);
+    measure_model.forAllLines(function(line) {
+	line.draw(ctx, print_factor, false);
+    });
+    if (measure_model.hasEditLine()) {
+	measure_model.getEditLine().draw_editline(ctx, print_factor);
     }
 }
 
@@ -405,13 +453,14 @@ function showLoupe(x, y) {
 	}
 	var l_off_x = x - crop_size/2 + 0.5
 	var l_off_y = y - crop_size/2 + 0.5;
-	for (i=0; i < lines.length; ++i) {
-	    lines[i].draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
-				     loupe_magnification);
-	}
-	if (current_line != undefined) {
-	    current_line.draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
-					 loupe_magnification);
+	measure_model.forAllLines(function(line) {
+	    line.draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
+				 loupe_magnification);
+	});
+	if (measure_model.hasEditLine()) {
+	    measure_model.getEditLine()
+		.draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
+				 loupe_magnification);
 	}
     }
 }
@@ -433,65 +482,58 @@ function showFadingLoupe(x, y) {
 function moveOp(x, y) {
     if (backgroundImage === undefined)
 	return;
-    if (current_line != undefined) {
-	current_line.updatePos(x, y);
+    var has_editline = measure_model.hasEditLine();
+    if (has_editline) {
+	measure_model.getEditLine().updatePos(x, y);
     }
     showFadingLoupe(x, y);
-    if (current_line == undefined)
+    if (!has_editline)
 	return;
     drawAll();
 }
 
 function clickOp(x, y) {
     var now = new Date().getTime();
-    if (current_line == undefined) {
-	current_line = new Line(x, y, x, y);
+    if (!measure_model.hasEditLine()) {
+	measure_model.startEditLine(x, y);
 	start_line_time = now;
 	help_system.printLevel(HelpLevelEnum.HELP_FINISH_LINE);
     } else {
-	current_line.updatePos(x, y);
+	var line = measure_model.getEditLine();
+	line.updatePos(x, y);
 	// Make sure that this was not a double-click event.
 	// (are there better ways ?)
-	if (current_line.length() > 50
-	    || (current_line.length() > 0 && (now - start_line_time) > 500)) {
-	    addLine(current_line);
+	if (line.length() > 50
+	    || (line.length() > 0 && (now - start_line_time) > 500)) {
+	    measure_model.commitEditLine();
 	    help_system.printLevel(HelpLevelEnum.HELP_SET_LEN);
+	} else {
+	    measure_model.forgetEditLine();
 	}
-
-	current_line = undefined;
     }
     drawAll();
 }
 
 function doubleClickOp(x, y) {
-    var smallest_distance = undefined;
-    var selected_line = undefined;
-    for (i = 0; i < lines.length; ++i) {
-	var this_distance = lines[i].distanceToCenter(x, y);
-	if (smallest_distance == undefined || this_distance < smallest_distance) {
-	    smallest_distance = this_distance;
-	    selected_line = lines[i];
+    var selected_line = measure_model.findClosest(x, y);
+    if (selected_line == undefined)
+	return;
+    selected_line.draw(measure_ctx, print_factor, true);
+    var orig_len_txt = (print_factor * selected_line.length()).toPrecision(4);
+    var new_value_txt = prompt("Length of selected line ?", orig_len_txt);
+    if (orig_len_txt != new_value_txt) {
+	var new_value = parseFloat(new_value_txt);
+	if (new_value && new_value > 0) {
+	    print_factor = new_value / selected_line.length();
 	}
     }
-
-    if (selected_line && smallest_distance < 50) {
-	selected_line.draw(measure_ctx, print_factor, true);
-	var orig_len_txt = (print_factor * selected_line.length()).toPrecision(4);
-	var new_value_txt = prompt("Length of selected line ?", orig_len_txt);
-	if (orig_len_txt != new_value_txt) {
-	    var new_value = parseFloat(new_value_txt);
-	    if (new_value && new_value > 0) {
-		print_factor = new_value / selected_line.length();
-	    }
-	}
-	help_system.printLevel(HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW);
-	drawAll();
-    }
+    help_system.printLevel(HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW);
+    drawAll();
 }
 
 function OnKeyEvent(e) {
-    if (e.keyCode == 27 && current_line != undefined) {  // ESC key.
-	current_line = undefined;
+    if (e.keyCode == 27 && measure_model.hasEditLine()) {  // ESC key.
+	measure_model.forgetEditLine();
 	drawAll();
     }
 }
@@ -528,8 +570,7 @@ function init_measure_canvas(width, height) {
     measure_ctx.font = 'bold ' + text_font_pixels + 'px Sans Serif';
 
     print_factor = 1;
-    lines = new Array();
-    current_line = undefined;
+    measure_model = new MeasureModel();
     start_line_time = 0;
 }
 
