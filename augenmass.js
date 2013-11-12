@@ -20,6 +20,7 @@
  * - export as SVG that includes the original image.
  *   (exporting just an image with the lines on top crashes browsers)
  */
+"use strict;"
 
 // Some constants.
 
@@ -227,16 +228,13 @@ function Line(x1, y1, x2, y2) {
 }
 
 var help_system;
-var measure_canvas;
-var measure_ctx;
+var aug_view;
 var loupe_canvas;
 var loupe_ctx;
 var print_factor;
-var measure_model;
-var start_line_time;
 var backgroundImage;  // if loaded.
 
-function MeasureModel() {
+function AugenmassModel() {
     this.lines_ = new Array();
     this.current_line_ = undefined;
 
@@ -290,6 +288,145 @@ function MeasureModel() {
     }
 }
 
+function AugenmassController(canvas, view) {
+    // This doesn't have any public methods.
+    this.start_line_time_ = 0;
+
+    canvas.addEventListener("mousedown", function(e) {
+	extract_event_pos(e, onClick);
+    });
+    canvas.addEventListener("mousemove", function(e) {
+	extract_event_pos(e, onMove);
+    });
+    canvas.addEventListener("dblclick", function(e) {
+	extract_event_pos(e, onDoubleClick);
+    });
+    document.addEventListener("keydown", onKeyEvent);
+
+    function extract_event_pos(e, callback) {
+	// browser and scroll-independent extraction of mouse cursor in canvas.
+	var x, y;
+	if (e.pageX != undefined && e.pageY != undefined) {
+	    x = e.pageX;
+	    y = e.pageY;
+	}
+	else {
+	    x = e.clientX + scrollLeft();
+	    y = e.clientY + scrollY();
+	}
+	x -= canvas.offsetLeft;
+	y -= canvas.offsetTop;
+	
+	callback(x, y);
+    }
+
+    function getModel() { return view.getModel(); }
+    function getView() { return view; }
+
+    function onKeyEvent(e) {
+	if (e.keyCode == 27 && getModel().hasEditLine()) {  // ESC key.
+	    getModel().forgetEditLine();
+	    getView().drawAll();
+	}
+    }
+
+    function onMove(x, y) {
+	if (backgroundImage === undefined)
+	    return;
+	var has_editline = getModel().hasEditLine();
+	if (has_editline) {
+	    getModel().getEditLine().updatePos(x, y);
+	}
+	showFadingLoupe(x, y);
+	if (!has_editline)
+	    return;
+	getView().drawAll();
+    }
+    
+    function onClick(x, y) {
+	var now = new Date().getTime();
+	if (!getModel().hasEditLine()) {
+	    getModel().startEditLine(x, y);
+	    this.start_line_time_ = now;
+	    help_system.printLevel(HelpLevelEnum.HELP_FINISH_LINE);
+	} else {
+	    var line = getModel().getEditLine();
+	    line.updatePos(x, y);
+	    // Make sure that this was not a double-click event.
+	    // (are there better ways ?)
+	    if (line.length() > 50
+		|| (line.length() > 0 && (now - this.start_line_time_) > 500)) {
+		getModel().commitEditLine();
+		help_system.printLevel(HelpLevelEnum.HELP_SET_LEN);
+	    } else {
+		getModel().forgetEditLine();
+	    }
+	}
+	getView().drawAll();
+    }
+
+    function onDoubleClick(x, y) {
+	var selected_line = getModel().findClosest(x, y);
+	if (selected_line == undefined)
+	    return;
+	getView().highlightLine(selected_line);
+	var orig_len_txt = (print_factor * selected_line.length()).toPrecision(4);
+	var new_value_txt = prompt("Length of selected line ?", orig_len_txt);
+	if (orig_len_txt != new_value_txt) {
+	    var new_value = parseFloat(new_value_txt);
+	    if (new_value && new_value > 0) {
+		print_factor = new_value / selected_line.length();
+	    }
+	}
+	help_system.printLevel(HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW);
+	getView().drawAll();
+    }
+}
+
+function AugenmassView(canvas) {
+    this.measure_canvas_ = canvas;
+    this.measure_ctx_ = this.measure_canvas_.getContext('2d');
+    this.model_ = undefined;
+    this.controller_ = undefined;
+
+    // Create a fresh measure canvas of the given size.
+    this.resetWithSize = function(width, height) {
+	this.measure_canvas_.width = width;
+	this.measure_canvas_.height = height;
+	this.measure_ctx_.font = 'bold ' + text_font_pixels + 'px Sans Serif';
+
+	print_factor = 1;
+	// A fresh model.
+	this.model_ = new AugenmassModel();
+	if (this.controller_ == undefined) {
+	    this.controller_ = new AugenmassController(canvas, this);
+	}
+    }
+
+    this.getModel = function() { return this.model_; }
+    this.getCanvas = function() { return this.measure_canvas_; }
+
+    // Draw all the lines!
+    this.drawAll = function() {
+	this.measure_ctx_.clearRect(0, 0, this.measure_canvas_.width,
+				    this.measure_canvas_.height);
+	this.drawAllNoClear(this.measure_ctx_);
+    }
+
+    this.highlightLine = function(line) {
+	line.draw(this.measure_ctx_, print_factor, true);
+    }
+
+    this.drawAllNoClear = function(ctx) {
+	this.model_.forAllLines(function(line) {
+	    line.draw(ctx, print_factor, false);
+	});
+	if (this.model_.hasEditLine()) {
+	    this.model_.getEditLine().draw_editline(ctx, print_factor);
+	}
+    }
+}
+
 // We show different help levels. After each stage the user successfully
 // performs, the next level is shown. Once the user managed all of them,
 // we're fading into silency.
@@ -339,21 +476,6 @@ function HelpSystem(helptext_span) {
     }
 }
 
-// Draw all the lines!
-function drawAll() {
-    measure_ctx.clearRect(0, 0, measure_canvas.width, measure_canvas.height);
-    drawAllNoClear(measure_ctx);
-}
-
-function drawAllNoClear(ctx) {
-    measure_model.forAllLines(function(line) {
-	line.draw(ctx, print_factor, false);
-    });
-    if (measure_model.hasEditLine()) {
-	measure_model.getEditLine().draw_editline(ctx, print_factor);
-    }
-}
-
 // Helper to show the 'corner hooks' in the loupe display.
 function showQuadBracket(loupe_ctx, loupe_size, bracket_len) {
     loupe_ctx.moveTo(0, bracket_len);                 // top left.
@@ -377,7 +499,7 @@ function showLoupe(x, y) {
     // if we can fit the loupe right of the image, let's do it. Otherwise
     // it is in the top left corner, with some volatility to escape the cursor.
     var cursor_in_frame_x = x - scrollLeft();
-    var cursor_in_frame_y = y - scrollTop() + measure_canvas.offsetTop;
+    var cursor_in_frame_y = y - scrollTop() + aug_view.getCanvas().offsetTop;
 
     // Let's see if we have any overlap with the loupe - if so, move it
     // out of the way.
@@ -453,14 +575,14 @@ function showLoupe(x, y) {
 	}
 	var l_off_x = x - crop_size/2 + 0.5
 	var l_off_y = y - crop_size/2 + 0.5;
-	measure_model.forAllLines(function(line) {
+	var model = aug_view.getModel();
+	model.forAllLines(function(line) {
 	    line.draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
 				 loupe_magnification);
 	});
-	if (measure_model.hasEditLine()) {
-	    measure_model.getEditLine()
-		.draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
-				 loupe_magnification);
+	if (model.hasEditLine()) {
+	    model.getEditLine().draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
+						loupe_magnification);
 	}
     }
 }
@@ -479,65 +601,6 @@ function showFadingLoupe(x, y) {
     }, 8000);
 }
 
-function moveOp(x, y) {
-    if (backgroundImage === undefined)
-	return;
-    var has_editline = measure_model.hasEditLine();
-    if (has_editline) {
-	measure_model.getEditLine().updatePos(x, y);
-    }
-    showFadingLoupe(x, y);
-    if (!has_editline)
-	return;
-    drawAll();
-}
-
-function clickOp(x, y) {
-    var now = new Date().getTime();
-    if (!measure_model.hasEditLine()) {
-	measure_model.startEditLine(x, y);
-	start_line_time = now;
-	help_system.printLevel(HelpLevelEnum.HELP_FINISH_LINE);
-    } else {
-	var line = measure_model.getEditLine();
-	line.updatePos(x, y);
-	// Make sure that this was not a double-click event.
-	// (are there better ways ?)
-	if (line.length() > 50
-	    || (line.length() > 0 && (now - start_line_time) > 500)) {
-	    measure_model.commitEditLine();
-	    help_system.printLevel(HelpLevelEnum.HELP_SET_LEN);
-	} else {
-	    measure_model.forgetEditLine();
-	}
-    }
-    drawAll();
-}
-
-function doubleClickOp(x, y) {
-    var selected_line = measure_model.findClosest(x, y);
-    if (selected_line == undefined)
-	return;
-    selected_line.draw(measure_ctx, print_factor, true);
-    var orig_len_txt = (print_factor * selected_line.length()).toPrecision(4);
-    var new_value_txt = prompt("Length of selected line ?", orig_len_txt);
-    if (orig_len_txt != new_value_txt) {
-	var new_value = parseFloat(new_value_txt);
-	if (new_value && new_value > 0) {
-	    print_factor = new_value / selected_line.length();
-	}
-    }
-    help_system.printLevel(HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW);
-    drawAll();
-}
-
-function OnKeyEvent(e) {
-    if (e.keyCode == 27 && measure_model.hasEditLine()) {  // ESC key.
-	measure_model.forgetEditLine();
-	drawAll();
-    }
-}
-
 function scrollTop() {
     return document.body.scrollTop + document.documentElement.scrollTop;
 }
@@ -546,40 +609,11 @@ function scrollLeft() {
     return document.body.scrollLeft + document.documentElement.scrollLeft;
 }
 
-function extract_event_pos(e, callback) {
-    // browser and scroll-independent extraction of mouse cursor in canvas.
-    var x, y;
-    if (e.pageX != undefined && e.pageY != undefined) {
-	x = e.pageX;
-	y = e.pageY;
-    }
-    else {
-	x = e.clientX + scrollLeft();
-	y = e.clientY + scrollY();
-    }
-    x -= measure_canvas.offsetLeft;
-    y -= measure_canvas.offsetTop;
-
-    callback(x, y);
-}
-
-// Create a fresh measure canvas of the given size.
-function init_measure_canvas(width, height) {
-    measure_canvas.width = width;
-    measure_canvas.height = height;
-    measure_ctx.font = 'bold ' + text_font_pixels + 'px Sans Serif';
-
-    print_factor = 1;
-    measure_model = new MeasureModel();
-    start_line_time = 0;
-}
-
 // Init function. Call once on page-load.
 function measure_init() {
     help_system = new HelpSystem(document.getElementById('helptext'));
     help_system.printLevel(HelpLevelEnum.HELP_FILE_LOADING);
-    measure_canvas = document.getElementById('measure');
-    measure_ctx = measure_canvas.getContext('2d');
+    aug_view = new AugenmassView(document.getElementById('measure'));
 
     loupe_canvas = document.getElementById('loupe');
     loupe_canvas.style.left = document.body.clientWidth - loupe_canvas.width - 10;
@@ -589,18 +623,7 @@ function measure_init() {
     loupe_ctx.mozImageSmoothingEnabled = false;
     loupe_ctx.webkitImageSmoothingEnabled = false;
 
-    init_measure_canvas(100, 100);   // Some default until we have an image.
-
-    measure_canvas.addEventListener("mousedown", function(e) {
-	extract_event_pos(e, clickOp);
-    });
-    measure_canvas.addEventListener("mousemove", function(e) {
-	extract_event_pos(e, moveOp);
-    });
-    measure_canvas.addEventListener("dblclick", function(e) {
-	extract_event_pos(e, doubleClickOp);
-    });
-    document.addEventListener("keydown", OnKeyEvent);
+    aug_view.resetWithSize(10, 10);   // Some default until we have an image.
 
     var chooser = document.getElementById("file-chooser");
     chooser.addEventListener("change", function(e) {
@@ -628,8 +651,8 @@ function init_download(filename) {
 function download_result(download_link) {
     if (backgroundImage === undefined)
 	return;
-    drawAll();
-    download_link.href = measure_canvas.toDataURL('image/png');
+    aug_view.drawAll();
+    download_link.href = aug_view.getCanvas().toDataURL('image/png');
 }
 
 function load_background_image(chooser) {
@@ -649,7 +672,7 @@ function load_background_image(chooser) {
 	    background_canvas.height = new_img.height;
 	    bg_context.drawImage(new_img, 0, 0);
 	    
-	    init_measure_canvas(new_img.width, new_img.height);
+	    aug_view.resetWithSize(new_img.width, new_img.height);
 
 	    help_system.printLevel(HelpLevelEnum.HELP_START_LINE);
 	    backgroundImage = new_img;
