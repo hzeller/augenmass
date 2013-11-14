@@ -27,12 +27,14 @@
 // it sufficiently distinct in many images).
 var line_style = "#00f";
 var background_line_style = 'rgba(255, 255, 0, 0.4)';
+var background_line_width = 7;
 
 // On highlight.
 var highlight_line_style = "#f00";
 var background_highlight_line_style = 'rgba(0, 255, 255, 0.4)';
 
-var text_font_pixels = 12;
+var length_font_pixels = 12;
+var angle_font_pixels = 10;
 var loupe_magnification = 7;
 var end_bracket_len = 5;
 
@@ -108,7 +110,7 @@ function Line(x1, y1, x2, y2) {
     this.draw_editline = function(ctx, length_factor) {
 	var pixel_len = this.length();
 	var print_text = (length_factor * pixel_len).toPrecision(4);
-	var text_len = ctx.measureText(print_text).width + 2 * text_font_pixels;
+	var text_len = ctx.measureText(print_text).width + 2 * length_font_pixels;
 
 	// We want to draw the line a little bit shorter, so that the
 	// open crosshair cursor has 'free sight'
@@ -122,7 +124,7 @@ function Line(x1, y1, x2, y2) {
 	// Background for t-line
 	ctx.beginPath();
 	ctx.strokeStyle = background_line_style;
-	ctx.lineWidth = 5;
+	ctx.lineWidth = background_line_width;
 	ctx.lineCap = 'round';
 	this.draw_t(ctx, this.p1.x, this.p1.y, this.p2.x, this.p2.y);
 	ctx.stroke();
@@ -148,18 +150,18 @@ function Line(x1, y1, x2, y2) {
 	    // White background for text. We're using a short line, so that we
 	    // have a nicely rounded box with our line-cap.
 	    var text_dx = -text_len/2;
-	    var text_dy = -(text_font_pixels + 10)/2;
+	    var text_dy = -(length_font_pixels + 10)/2;
 	    if (pixel_len > 0) {
 		text_dx = -dx * text_len/(2 * pixel_len);
-		text_dy = -dy * (text_font_pixels + 10)/(2 * pixel_len);
+		text_dy = -dy * (length_font_pixels + 10)/(2 * pixel_len);
 	    }
 	    ctx.beginPath();
 	    ctx.strokeStyle = background_line_style;
-	    ctx.lineWidth = text_font_pixels + 10;
+	    ctx.lineWidth = length_font_pixels + 10;
 	    ctx.lineCap = 'round';
-	    // We added the text_font_pixels above, so remove them here: the
+	    // We added the length_font_pixels above, so remove them here: the
 	    // rounding of the stroke will cover that.
-	    var background_text_len = text_len/2 - text_font_pixels;
+	    var background_text_len = text_len/2 - length_font_pixels;
 	    ctx.moveTo(this.p1.x + text_dx - background_text_len,
 		       this.p1.y + text_dy);
 	    ctx.lineTo(this.p1.x + text_dx + background_text_len,
@@ -186,7 +188,7 @@ function Line(x1, y1, x2, y2) {
 	} else {
 	    ctx.strokeStyle = background_line_style;
 	}
-	ctx.lineWidth = 5;
+	ctx.lineWidth = background_line_width;
 	ctx.lineCap = 'round';
 	ctx.moveTo(this.p1.x, this.p1.y);
 	ctx.lineTo(this.p2.x, this.p2.y);
@@ -198,11 +200,11 @@ function Line(x1, y1, x2, y2) {
 	// have a nicely rounded box with our line-cap.
 	ctx.beginPath();
 	var text_len = ctx.measureText(print_text).width;
-	ctx.lineWidth = text_font_pixels + 10;
+	ctx.lineWidth = length_font_pixels + 10;
 	ctx.moveTo((this.p1.x + this.p2.x)/2 - text_len/2 - 10,
-		   (this.p1.y + this.p2.y)/2 - text_font_pixels/2);
+		   (this.p1.y + this.p2.y)/2 - length_font_pixels/2);
 	ctx.lineTo((this.p1.x + this.p2.x)/2 + text_len/2 + 10,
-		   (this.p1.y + this.p2.y)/2 - text_font_pixels/2);
+		   (this.p1.y + this.p2.y)/2 - length_font_pixels/2);
 	ctx.stroke();
 
 	ctx.beginPath();
@@ -225,7 +227,7 @@ function Line(x1, y1, x2, y2) {
 	ctx.textBaseline = 'middle';
 	ctx.textAlign = 'center';
 	ctx.fillText(print_text, (this.p1.x + this.p2.x)/2,
-		     (this.p1.y + this.p2.y)/2 - text_font_pixels/2);
+		     (this.p1.y + this.p2.y)/2 - length_font_pixels/2);
 	ctx.stroke();
     }
 
@@ -261,36 +263,51 @@ function writeRotatedText(ctx, txt, x, y, radius, angle) {
     ctx.save();
     ctx.beginPath();
     ctx.translate(x, y);
+    ctx.strokeStyle = background_line_style;
+    ctx.lineWidth = angle_font_pixels;
+    ctx.lineCap = 'butt';   // should end flush with the arc.
+    ctx.moveTo(0, 0);
     if (angle <= Math.PI/2 || angle > 3 * Math.PI/2) {
 	ctx.rotate(-angle);   // JavaScript, Y U NO turn angles left.
 	ctx.textAlign = 'right';
 	ctx.textBaseline = 'middle';
+	ctx.lineTo(radius, 0);
+	ctx.stroke();
 	ctx.fillText(txt, radius, 0);
     } else {
 	// Humans don't like to read text upside down
 	ctx.rotate(-(angle + Math.PI));
 	ctx.textAlign = 'left';
 	ctx.textBaseline = 'middle';
+	ctx.lineTo(-radius, 0);
+	ctx.stroke();
 	ctx.fillText(txt, -radius, 0);
     }
     ctx.restore();
 }
 
 function drawArc(ctx, arc, radius_fiddle) {
-    ctx.beginPath();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = "#000";
     var text_len = ctx.measureText("333.3\u00B0").width;
-    var radius = text_len + 3 * end_bracket_len + radius_fiddle;
+    var radius = text_len + 2 * end_bracket_len + radius_fiddle;
+    ctx.beginPath();
+    ctx.lineWidth = background_line_width;
+    ctx.strokeStyle = background_line_style;
     // Javascript turns angles right not left. Ugh.
     ctx.arc(arc.center.x, arc.center.y, Math.min(radius, arc.max_radius),
 	    2 * Math.PI - arc.end, 2 * Math.PI - arc.start);
     ctx.stroke();
+
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#000";
+    ctx.arc(arc.center.x, arc.center.y, Math.min(radius, arc.max_radius),
+	    2 * Math.PI - arc.end, 2 * Math.PI - arc.start);
+    ctx.stroke();
+
     var middle_angle = (arc.end - arc.start)/2 + arc.start;
     writeRotatedText(ctx, arc.angleInDegrees().toFixed(1) + "\u00B0",
 		     arc.center.x, arc.center.y,
-		     3 * end_bracket_len + text_len - 2,
-		     middle_angle);
+		     radius - 2, middle_angle);
 }
 
 var help_system;
@@ -572,7 +589,7 @@ function AugenmassView(canvas) {
     this.resetWithSize = function(width, height) {
 	this.measure_canvas_.width = width;
 	this.measure_canvas_.height = height;
-	this.measure_ctx_.font = 'bold ' + text_font_pixels + 'px Sans Serif';
+	this.measure_ctx_.font = 'bold ' + length_font_pixels + 'px Sans Serif';
 
 	print_factor = 1;
 	// A fresh model.
@@ -597,17 +614,17 @@ function AugenmassView(canvas) {
     }
 
     this.drawAllNoClear = function(ctx) {
-	this.measure_ctx_.font = 'bold ' + text_font_pixels + 'px Sans Serif';
+	this.measure_ctx_.font = 'bold ' + length_font_pixels + 'px Sans Serif';
 	this.model_.forAllLines(function(line) {
 	    line.draw(ctx, print_factor, false);
 	});
 	if (this.model_.hasEditLine()) {
 	    this.model_.getEditLine().draw_editline(ctx, print_factor);
 	}
-	this.measure_ctx_.font = '10px Sans Serif';
+	this.measure_ctx_.font = angle_font_pixels + "px Sans Serif";
 	var count = 0;
 	this.model_.forAllArcs(function(arc) {
-	    drawArc(ctx, arc, (count++ % 2) * 3);
+	    drawArc(ctx, arc, (count++ % 3) * 3);
 	});
     }
 }
