@@ -20,7 +20,7 @@
  * - export as SVG that includes the original image.
  *   (exporting just an image with the lines on top crashes browsers)
  */
-"use strict;"
+"use strict";
 
 // Some constants.
 
@@ -33,44 +33,52 @@ var background_line_style = 'rgba(255, 255, 0, 0.4)';
 var highlight_line_style = "#f00";
 var background_highlight_line_style = 'rgba(0, 255, 255, 0.4)';
 
-var text_font_pixels = 18;
+var text_font_pixels = 12;
 var loupe_magnification = 7;
+var end_bracket_len = 5;
 
 function euklid_distance(x1, y1, x2, y2) {
     return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
+function Point(x, y) {
+    this.update = function(x, y) {
+	this.x = x;
+	this.y = y;
+    }
+
+    this.update(x, y);
+}
+
 function Line(x1, y1, x2, y2) {
     // The canvas coordinate system numbers the space _between_ pixels
     // as full coordinage. Correct for that.
-    this.x1 = x1 + 0.5;
-    this.y1 = y1 + 0.5;
-    this.x2 = x2 + 0.5;
-    this.y2 = y2 + 0.5;
+    this.p1 = new Point(x1 + 0.5, y1 + 0.5);
+    this.p2 = new Point(x2 + 0.5, y2 + 0.5);
 
     // While editing: updating second end of the line.
     this.updatePos = function(x2, y2) {
-	this.x2 = x2 + 0.5;
-	this.y2 = y2 + 0.5;
+	this.p2.update(x2 + 0.5, y2 + 0.5);
     }
 
     // Helper for determining selection: how far is the given position from the
     // center text.
     this.distanceToCenter = function(x, y) {
-	var centerX = (this.x2 + this.x1)/2;
-	var centerY = (this.y2 + this.y1)/2;
+	var centerX = (this.p1.x + this.p2.x)/2;
+	var centerY = (this.p1.y + this.p2.y)/2;
 	return euklid_distance(centerX, centerY, x, y);
     }
 
+    // -- these draw methods should not be here.
+
     // Draw a T end-piece at position x, y
     this.draw_t = function(ctx, x, y, remote_x, remote_y) {
-	var Tlen = 15
 	var len = euklid_distance(x, y, remote_x, remote_y);
 	if (len < 1) return;
 	var dx = remote_x - x;
 	var dy = remote_y - y;
-	ctx.moveTo(x - Tlen * dy/len, y + Tlen * dx/len);
-	ctx.lineTo(x + Tlen * dy/len, y - Tlen * dx/len);
+	ctx.moveTo(x - end_bracket_len * dy/len, y + end_bracket_len * dx/len);
+	ctx.lineTo(x + end_bracket_len * dy/len, y - end_bracket_len * dx/len);
     }
 
     // Very simple line, as shown in the loupe-view.
@@ -78,8 +86,8 @@ function Line(x1, y1, x2, y2) {
 	// these 0.5 offsets seem to look inconclusive on Chrome and Firefox.
 	// Need to go deeper.
 	ctx.beginPath();
-	var x1pos = (this.x1 - off_x), y1pos = (this.y1 - off_y);
-	var x2pos = (this.x2 - off_x), y2pos = (this.y2 - off_y);
+	var x1pos = (this.p1.x - off_x), y1pos = (this.p1.y - off_y);
+	var x2pos = (this.p2.x - off_x), y2pos = (this.p2.y - off_y);
 	ctx.moveTo(x1pos * factor, y1pos * factor);
 	ctx.lineTo(x2pos * factor, y2pos * factor);
 	ctx.stroke();
@@ -105,26 +113,26 @@ function Line(x1, y1, x2, y2) {
 
 	// We want to draw the line a little bit shorter, so that the
 	// open crosshair cursor has 'free sight'
-	var dx = this.x2 - this.x1;
-	var dy = this.y2 - this.y1;
+	var dx = this.p2.x - this.p1.x;
+	var dy = this.p2.y - this.p1.y;
 	if (pixel_len > 2) {
 	    dx = dx * (pixel_len - 2)/pixel_len;
 	    dy = dy * (pixel_len - 2)/pixel_len;
 	}
 
-	// White background for t-line
+	// Background for t-line
 	ctx.beginPath();
 	ctx.strokeStyle = background_line_style;
-	ctx.lineWidth = 10;
+	ctx.lineWidth = 5;
 	ctx.lineCap = 'round';
-	this.draw_t(ctx, this.x1, this.y1, this.x2, this.y2);
+	this.draw_t(ctx, this.p1.x, this.p1.y, this.p2.x, this.p2.y);
 	ctx.stroke();
 
 	// White background for actual line
 	ctx.beginPath();
 	ctx.lineCap = 'butt';  // Flat to not bleed into crosshair.
-	ctx.moveTo(this.x1, this.y1);
-	ctx.lineTo(this.x1 + dx, this.y1 + dy);
+	ctx.moveTo(this.p1.x, this.p1.y);
+	ctx.lineTo(this.p1.x + dx, this.p1.y + dy);
 	ctx.stroke();
 
 	// t-line and line.
@@ -132,9 +140,9 @@ function Line(x1, y1, x2, y2) {
 	ctx.strokeStyle = '#00F';
 	ctx.lineWidth = 1;
 	ctx.lineCap = 'butt';
-	this.draw_t(ctx, this.x1, this.y1, this.x2, this.y2);
-	ctx.moveTo(this.x1, this.y1);
-	ctx.lineTo(this.x1 + dx, this.y1 + dy);
+	this.draw_t(ctx, this.p1.x, this.p1.y, this.p2.x, this.p2.y);
+	ctx.moveTo(this.p1.x, this.p1.y);
+	ctx.lineTo(this.p1.x + dx, this.p1.y + dy);
 	ctx.stroke();
 
 	if (pixel_len >= 2) {
@@ -153,17 +161,17 @@ function Line(x1, y1, x2, y2) {
 	    // We added the text_font_pixels above, so remove them here: the
 	    // rounding of the stroke will cover that.
 	    var background_text_len = text_len/2 - text_font_pixels;
-	    ctx.moveTo(this.x1 + text_dx - background_text_len,
-		       this.y1 + text_dy);
-	    ctx.lineTo(this.x1 + text_dx + background_text_len,
-		       this.y1 + text_dy);
+	    ctx.moveTo(this.p1.x + text_dx - background_text_len,
+		       this.p1.y + text_dy);
+	    ctx.lineTo(this.p1.x + text_dx + background_text_len,
+		       this.p1.y + text_dy);
 	    ctx.stroke();
 	    
 	    ctx.beginPath();
 	    ctx.fillStyle = '#000';
 	    ctx.textBaseline = 'middle';
 	    ctx.textAlign = 'center';
-	    ctx.fillText(print_text, this.x1 + text_dx, this.y1 + text_dy);
+	    ctx.fillText(print_text, this.p1.x + text_dx, this.p1.y + text_dy);
 	    ctx.stroke();
 	}
     }
@@ -179,12 +187,12 @@ function Line(x1, y1, x2, y2) {
 	} else {
 	    ctx.strokeStyle = background_line_style;
 	}
-	ctx.lineWidth = 10;
+	ctx.lineWidth = 5;
 	ctx.lineCap = 'round';
-	ctx.moveTo(this.x1, this.y1);
-	ctx.lineTo(this.x2, this.y2);
-	this.draw_t(ctx, this.x1, this.y1, this.x2, this.y2);	
-	this.draw_t(ctx, this.x2, this.y2, this.x1, this.y1);	
+	ctx.moveTo(this.p1.x, this.p1.y);
+	ctx.lineTo(this.p2.x, this.p2.y);
+	this.draw_t(ctx, this.p1.x, this.p1.y, this.p2.x, this.p2.y);	
+	this.draw_t(ctx, this.p2.x, this.p2.y, this.p1.x, this.p1.y);	
 	ctx.stroke();
 
 	// Background behind text. We're using a short line, so that we
@@ -192,10 +200,10 @@ function Line(x1, y1, x2, y2) {
 	ctx.beginPath();
 	var text_len = ctx.measureText(print_text).width;
 	ctx.lineWidth = text_font_pixels + 10;
-	ctx.moveTo((this.x1 + this.x2)/2 - text_len/2 - 10,
-		   (this.y1 + this.y2)/2 - text_font_pixels/2);
-	ctx.lineTo((this.x1 + this.x2)/2 + text_len/2 + 10,
-		   (this.y1 + this.y2)/2 - text_font_pixels/2);
+	ctx.moveTo((this.p1.x + this.p2.x)/2 - text_len/2 - 10,
+		   (this.p1.y + this.p2.y)/2 - text_font_pixels/2);
+	ctx.lineTo((this.p1.x + this.p2.x)/2 + text_len/2 + 10,
+		   (this.p1.y + this.p2.y)/2 - text_font_pixels/2);
 	ctx.stroke();
 
 	ctx.beginPath();
@@ -206,10 +214,10 @@ function Line(x1, y1, x2, y2) {
 	    ctx.strokeStyle = line_style;
 	}
 	ctx.lineWidth = 1;
-	ctx.moveTo(this.x1, this.y1);
-	ctx.lineTo(this.x2, this.y2);
-	this.draw_t(ctx, this.x1, this.y1, this.x2, this.y2);	
-	this.draw_t(ctx, this.x2, this.y2, this.x1, this.y1);	
+	ctx.moveTo(this.p1.x, this.p1.y);
+	ctx.lineTo(this.p2.x, this.p2.y);
+	this.draw_t(ctx, this.p1.x, this.p1.y, this.p2.x, this.p2.y);	
+	this.draw_t(ctx, this.p2.x, this.p2.y, this.p1.x, this.p1.y);	
 	ctx.stroke();
 
 	// .. and text.
@@ -217,14 +225,66 @@ function Line(x1, y1, x2, y2) {
 	ctx.fillStyle = '#000';
 	ctx.textBaseline = 'middle';
 	ctx.textAlign = 'center';
-	ctx.fillText(print_text, (this.x1 + this.x2)/2,
-		     (this.y1 + this.y2)/2 - text_font_pixels/2);
+	ctx.fillText(print_text, (this.p1.x + this.p2.x)/2,
+		     (this.p1.y + this.p2.y)/2 - text_font_pixels/2);
 	ctx.stroke();
     }
 
     this.length = function() {
-	return euklid_distance(this.x1, this.y1, this.x2, this.y2);
+	return euklid_distance(this.p1.x, this.p1.y, this.p2.x, this.p2.y);
     }
+}
+
+// Create an arc with the given start and end-angle. If angle is > 180 degrees,
+// chooses the shorter arc.
+function Arc(center, start_angle, end_angle) {
+    this.center = center;
+    this.start = start_angle;
+    this.end = end_angle;
+
+    // Printable value in the range [0..360)
+    this.angleInDegrees = function() {
+	var a = 180.0 * (this.end - this.start) / Math.PI;
+	if (a < 0) a += 360;
+	return a;
+    }
+}
+
+// Write rotated text, aligned to the outside.
+function writeRotatedText(ctx, txt, x, y, radius, angle) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.translate(x, y);
+    if (angle <= Math.PI/2 || angle > 3 * Math.PI/2) {
+	ctx.rotate(-angle);   // JavaScript, Y U NO turn angles left.
+	ctx.textAlign = 'right';
+	ctx.textBaseline = 'middle';
+	ctx.fillText(txt, radius, 0);
+    } else {
+	// Humans don't like to read text upside down
+	ctx.rotate(-(angle + Math.PI));
+	ctx.textAlign = 'left';
+	ctx.textBaseline = 'middle';
+	ctx.fillText(txt, -radius, 0);
+    }
+    ctx.restore();
+}
+
+function drawArc(ctx, arc, radius_fiddle) {
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#000";
+    var text_len = ctx.measureText("333.3\u00B0").width;
+    var radius = text_len + 3 * end_bracket_len + radius_fiddle;
+    // Javascript turns angles right not left. Ugh.
+    ctx.arc(arc.center.x, arc.center.y, radius,
+	    2 * Math.PI - arc.end, 2 * Math.PI - arc.start);
+    ctx.stroke();
+    var middle_angle = (arc.end - arc.start)/2 + arc.start;
+    writeRotatedText(ctx, arc.angleInDegrees().toFixed(1) + "\u00B0",
+		     arc.center.x, arc.center.y,
+		     3 * end_bracket_len + text_len - 2,
+		     middle_angle);
 }
 
 var help_system;
@@ -234,24 +294,89 @@ var loupe_ctx;
 var print_factor;
 var backgroundImage;  // if loaded.
 
+function Angle(center_p, remote_p, line) {
+    this.center = center_p;
+    this.p = remote_p;
+    this.line = line;
+    this.angle = undefined;
+
+    // Whenever points change, this needs to be called.
+    this.notifyPointsChanged = function() {
+	var len = euklid_distance(this.center.x, this.center.y,
+				  this.p.x, this.p.y);
+	var dx = this.p.x - this.center.x;
+	var angle = Math.acos(dx/len);
+	if (this.p.y > this.center.y) {
+	    angle = 2 * Math.PI - angle;
+	}
+	this.angle = angle;
+    }
+
+    this.notifyPointsChanged();
+}
+
 function AugenmassModel() {
     this.lines_ = new Array();
+    this.point_angle_map_ = {};  // points to lines originating from it.
     this.current_line_ = undefined;
+    this.current_angle_ = undefined;
 
     // -- editing operation. We start a line and eventually commit or forget it.
 
     // Start a new line but does not add it to the model yet.
     this.startEditLine = function(x, y) {
-	this.current_line_ = new Line(x, y, x, y);
+	var line = new Line(x, y, x, y);
+	this.current_line_ = line;
+	this.current_angle_ = this.addAngle(line.p1, line.p2, line);
     }
     this.hasEditLine = function() { return this.current_line_ != undefined; }
     this.getEditLine = function() { return this.current_line_; }
+    this.updateEditLine = function(x, y) {
+	if (this.current_line_ == undefined) return;
+	this.current_line_.updatePos(x, y);
+	this.current_angle_.notifyPointsChanged();
+	return this.current_line_;
+    }
+
     this.commitEditLine = function() {
-	this.lines_[this.lines_.length] = this.current_line_;
+	var line = this.current_line_;
+	this.lines_[this.lines_.length] = line;
+	this.addAngle(line.p2, line.p1, line);
 	this.current_line_ = undefined;
     }
     this.forgetEditLine = function() {
+	if (this.current_line_ == undefined)
+	    return;
+	this.removeAngle(this.current_line_.p1, this.current_line_);
 	this.current_line_ = undefined;
+    }
+
+    this.addAngle = function(center, p2, line) {
+	var key = center.x + ":" + center.y;
+	var angle_list = this.point_angle_map_[key];
+	if (angle_list === undefined) {
+	    angle_list = new Array();
+	    this.point_angle_map_[key] = angle_list;
+	}
+	var angle = new Angle(center, p2, line);
+	angle_list[angle_list.length] = angle;
+	return angle;
+    }
+
+    this.removeAngle = function(center_point, line) {
+	var key = center_point.x + ":" + center_point.y;
+	var angle_list = this.point_angle_map_[key];
+	if (angle_list === undefined) return; // shrug.
+	var pos = -1;
+	for (var i = 0; i < angle_list.length; ++i) {
+	    if (angle_list[i].line == line) {
+		pos = i;
+		break;
+	    }
+	}
+	if (pos >= 0) {
+	    angle_list.splice(pos, 1);
+	}
     }
 
     // Remove a line
@@ -280,10 +405,28 @@ function AugenmassModel() {
 	return undefined;
     }
 
-    // Callback that returns a line.
+    // Iterate over all lines; Callback needs to accept a line.
     this.forAllLines = function(cb) {
-	for (i=0; i < this.lines_.length; ++i) {
+	for (var i = 0; i < this.lines_.length; ++i) {
 	    cb(this.lines_[i]);
+	}
+    }
+
+    this.forAllArcs = function(cb) {
+	for (var key in this.point_angle_map_) {
+	    if (!this.point_angle_map_.hasOwnProperty(key))
+		continue;
+	    var angle_list = this.point_angle_map_[key];
+	    if (angle_list.length < 2)
+		continue;
+	    angle_list.sort(function(a, b) {
+		return a.angle - b.angle;
+	    });
+	    for (var i = 0; i < angle_list.length - 1; ++i) {
+		var arc = new Arc(angle_list[0].center,
+				  angle_list[i].angle, angle_list[i+1].angle);
+		cb(arc)
+	    }
 	}
     }
 }
@@ -292,8 +435,9 @@ function AugenmassController(canvas, view) {
     // This doesn't have any public methods.
     this.start_line_time_ = 0;
 
+    var self = this;
     canvas.addEventListener("mousedown", function(e) {
-	extract_event_pos(e, onClick);
+	extract_event_pos(e, function(e,x,y) { self.onClick(e,x,y); });
     });
     canvas.addEventListener("contextmenu", function(e) {
 	e.preventDefault();
@@ -344,7 +488,7 @@ function AugenmassController(canvas, view) {
 	    return;
 	var has_editline = getModel().hasEditLine();
 	if (has_editline) {
-	    getModel().getEditLine().updatePos(x, y);
+	    getModel().updateEditLine(x, y);
 	}
 	showFadingLoupe(x, y);
 	if (!has_editline)
@@ -352,7 +496,7 @@ function AugenmassController(canvas, view) {
 	getView().drawAll();
     }
     
-    function onClick(e, x, y) {
+    this.onClick = function(e, x, y) {
 	if (e.which != undefined && e.which == 3) {
 	    // right mouse button.
 	    cancelCurrentLine();
@@ -364,8 +508,7 @@ function AugenmassController(canvas, view) {
 	    this.start_line_time_ = now;
 	    help_system.printLevel(HelpLevelEnum.HELP_FINISH_LINE);
 	} else {
-	    var line = getModel().getEditLine();
-	    line.updatePos(x, y);
+	    var line = getModel().updateEditLine(x, y);
 	    // Make sure that this was not a double-click event.
 	    // (are there better ways ?)
 	    if (line.length() > 50
@@ -433,19 +576,25 @@ function AugenmassView(canvas) {
     }
 
     this.drawAllNoClear = function(ctx) {
+	this.measure_ctx_.font = 'bold ' + text_font_pixels + 'px Sans Serif';
 	this.model_.forAllLines(function(line) {
 	    line.draw(ctx, print_factor, false);
 	});
 	if (this.model_.hasEditLine()) {
 	    this.model_.getEditLine().draw_editline(ctx, print_factor);
 	}
+	this.measure_ctx_.font = '10px Sans Serif';
+	var count = 0;
+	this.model_.forAllArcs(function(arc) {
+	    drawArc(ctx, arc, (count++ % 2) * 3);
+	});
     }
 }
 
 // We show different help levels. After each stage the user successfully
 // performs, the next level is shown. Once the user managed all of them,
 // we're fading into silency.
-HelpLevelEnum = {
+var HelpLevelEnum = {
     HELP_FILE_LOADING:  0,
     HELP_START_LINE:    1,
     HELP_FINISH_LINE:   2,
@@ -577,7 +726,7 @@ function showLoupe(x, y) {
     loupe_ctx.stroke();
 
     // Draw all the lines in the loupe; better 'high resolution' view.
-    for (style = 0; style < 2; ++style) {
+    for (var style = 0; style < 2; ++style) {
 	switch (style) {
 	case 0:
 	    loupe_ctx.strokeStyle = background_line_style;
@@ -648,7 +797,7 @@ function measure_init() {
     var download_link = document.getElementById('download-result');
     download_link.addEventListener('click', function() {
 	download_result(download_link) },  false);
-    download_link.style.opacity = 0;
+    download_link.style.opacity = 0;  // not visible at first.
     download_link.style.cursor = "default";
 }
 
