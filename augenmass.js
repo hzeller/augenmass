@@ -237,10 +237,11 @@ function Line(x1, y1, x2, y2) {
 
 // Create an arc with the given start and end-angle. If angle is > 180 degrees,
 // chooses the shorter arc.
-function Arc(center, start_angle, end_angle) {
-    this.center = center;
-    this.start = start_angle;
-    this.end = end_angle;
+function Arc(angle1, angle2) {
+    this.center = angle1.center;
+    this.start = angle1.angle;
+    this.end = angle2.angle;
+    this.max_radius = Math.min(angle1.arm_length(), angle2.arm_length());
 
     // Printable value in the range [0..360)
     this.angleInDegrees = function() {
@@ -277,7 +278,7 @@ function drawArc(ctx, arc, radius_fiddle) {
     var text_len = ctx.measureText("333.3\u00B0").width;
     var radius = text_len + 3 * end_bracket_len + radius_fiddle;
     // Javascript turns angles right not left. Ugh.
-    ctx.arc(arc.center.x, arc.center.y, radius,
+    ctx.arc(arc.center.x, arc.center.y, Math.min(radius, arc.max_radius),
 	    2 * Math.PI - arc.end, 2 * Math.PI - arc.start);
     ctx.stroke();
     var middle_angle = (arc.end - arc.start)/2 + arc.start;
@@ -299,17 +300,28 @@ function Angle(center_p, remote_p, line) {
     this.p = remote_p;
     this.line = line;
     this.angle = undefined;
+    this.is_valid = false;
+
+    this.arm_length = function() {
+	return euklid_distance(this.center.x, this.center.y,
+			       this.p.x, this.p.y);
+    }
 
     // Whenever points change, this needs to be called.
     this.notifyPointsChanged = function() {
 	var len = euklid_distance(this.center.x, this.center.y,
 				  this.p.x, this.p.y);
+	if (len == 0.0) {
+	    this.is_valid = false;
+	    return;
+	}
 	var dx = this.p.x - this.center.x;
 	var angle = Math.acos(dx/len);
 	if (this.p.y > this.center.y) {
 	    angle = 2 * Math.PI - angle;
 	}
 	this.angle = angle;
+	this.is_valid = true;
     }
 
     this.notifyPointsChanged();
@@ -423,8 +435,10 @@ function AugenmassModel() {
 		return a.angle - b.angle;
 	    });
 	    for (var i = 0; i < angle_list.length - 1; ++i) {
-		var arc = new Arc(angle_list[0].center,
-				  angle_list[i].angle, angle_list[i+1].angle);
+		var a = angle_list[i], b = angle_list[i+1];
+		if (!a.is_valid || !b.is_valid)
+		    continue;
+		var arc = new Arc(a, b);
 		cb(arc)
 	    }
 	}
