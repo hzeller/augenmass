@@ -3,7 +3,6 @@
  * potential TODO
  * - clean up. This is mostly experimental code right now figuring out how
  *   JavaScript works and stuff :) Put things with their own state in objects.
- * - put loupe always rightmost, not leftmost (there it is annoying).
  * - provide chained lines with angles displayed between them (could be
  *   default mode at first, until there are modes)
  * - circle radius estimation (separate mode)
@@ -241,7 +240,13 @@ function Arc(angle1, angle2) {
     this.center = angle1.center;
     this.start = angle1.angle;
     this.end = angle2.angle;
-    this.max_radius = Math.min(angle1.arm_length(), angle2.arm_length());
+    if (this.end < this.start) {
+	this.end += 2 * Math.PI;
+    }
+    // We want the drawn arc use at maximum half the lenght of the arm. That
+    // way, two adjacent arcs on each endpoint of the arm are rendered
+    // without overlap.
+    this.max_radius = Math.min(angle1.arm_length(), angle2.arm_length()) / 2;
 
     // Printable value in the range [0..360)
     this.angleInDegrees = function() {
@@ -434,11 +439,13 @@ function AugenmassModel() {
 	    angle_list.sort(function(a, b) {
 		return a.angle - b.angle;
 	    });
-	    for (var i = 0; i < angle_list.length - 1; ++i) {
-		var a = angle_list[i], b = angle_list[i+1];
+	    for (var i = 0; i < angle_list.length; ++i) {
+		var a = angle_list[i], b = angle_list[(i+1) % angle_list.length];
 		if (!a.is_valid || !b.is_valid)
 		    continue;
 		var arc = new Arc(a, b);
+		if (arc.angleInDegrees() > 180.0)
+		    continue;
 		cb(arc)
 	    }
 	}
