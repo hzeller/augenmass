@@ -3,21 +3,27 @@
  * potential TODO
  * - clean up. This is mostly experimental code right now figuring out how
  *   JavaScript works and stuff :) Put things with their own state in objects.
- * - provide chained lines with angles displayed between them (could be
- *   default mode at first, until there are modes)
+ * - Endpoints should have the T, but angle-centers just a little circle.
+ *   (so: points that have > 1 lines attached to a point)
  * - circle radius estimation (separate mode)
  *    o three dots circle, 4 ellipsis,  but allow multiple dots
  *      and minimize error.
  *    o axis where the center would be plus two dots.
- * - draw current line in separate canvas to simplify redraw (and faster).
- * - two modes: draw, select
+ * - modes: draw single line, polyline, mark circle, select (for delete)
  * - select: left click selects a line (endpoints and center). Highlight;
  *   del deletes.
  * - shift + mouse movement: only allow for discrete 360/16 angles.
+ * - alt + mouse movement: snap to point in the vicinity.
  * - provide a 'reference straight line' defining the 0 degree angle.
- * - 'collision detection' for length labels.
+ * - 'collision detection' for labels. Labels should in general be drawn
+ *   separately and optimized for non-collision with other labels, lines and
+ *   arcs. Make them align with lines, unless too steep angle (+/- 60 degrees?).
+ * - checkbox 'show angles', 'show labels'
  * - export as SVG that includes the original image.
- *   (exporting just an image with the lines on top crashes browsers)
+ *   background, labels, support-lines (arcs and t-lines) and lines
+ *   should be in separate layers to individually look at them.
+ *   (exporting just an image with the lines on top crashes browsers; play
+ *   with toObjectUrl for download).
  */
 "use strict";
 
@@ -46,6 +52,11 @@ function Point(x, y) {
     this.update = function(x, y) {
 	this.x = x;
 	this.y = y;
+    }
+
+    // key to be used in hash tables.
+    this.get_key = function() {
+	return this.x + ":" + this.y;
     }
 
     this.update(x, y);
@@ -386,7 +397,7 @@ function AugenmassModel() {
     }
 
     this.addAngle = function(center, p2, line) {
-	var key = center.x + ":" + center.y;
+	var key = center.get_key();
 	var angle_list = this.point_angle_map_[key];
 	if (angle_list === undefined) {
 	    angle_list = new Array();
@@ -398,7 +409,7 @@ function AugenmassModel() {
     }
 
     this.removeAngle = function(center_point, line) {
-	var key = center_point.x + ":" + center_point.y;
+	var key = center_point.get_key();
 	var angle_list = this.point_angle_map_[key];
 	if (angle_list === undefined) return; // shrug.
 	var pos = -1;
@@ -763,6 +774,10 @@ function showLoupe(x, y) {
     loupe_ctx.fillText("(" + x + "," + y + ")", 10, 30);
     loupe_ctx.stroke();
 
+    // TODO: we want the loupe-context be scaled anyway, and have this a 
+    // translation.
+    var l_off_x = x - crop_size/2 + 0.5
+    var l_off_y = y - crop_size/2 + 0.5;
     // Draw all the lines in the loupe; better 'high resolution' view.
     for (var style = 0; style < 2; ++style) {
 	switch (style) {
@@ -775,8 +790,6 @@ function showLoupe(x, y) {
 	    loupe_ctx.lineWidth = 1;
 	    break;
 	}
-	var l_off_x = x - crop_size/2 + 0.5
-	var l_off_y = y - crop_size/2 + 0.5;
 	var model = aug_view.getModel();
 	model.forAllLines(function(line) {
 	    line.draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
