@@ -17,6 +17,26 @@ function showQuadBracket(loupe_ctx, loupe_size, bracket_len) {
     loupe_ctx.lineTo(loupe_size, loupe_size - bracket_len);
 }
 
+function drawLoupeLine(ctx, line, off_x, off_y, factor) {
+    // these 0.5 offsets seem to look inconclusive on Chrome and Firefox.
+    // Need to go deeper.
+    ctx.beginPath();
+    var x1pos = (line.p1.x - off_x), y1pos = (line.p1.y - off_y);
+    var x2pos = (line.p2.x - off_x), y2pos = (line.p2.y - off_y);
+    ctx.moveTo(x1pos * factor, y1pos * factor);
+    ctx.lineTo(x2pos * factor, y2pos * factor);
+    ctx.stroke();
+    // We want circles that circumreference the pixel in question.
+    ctx.beginPath();
+    ctx.arc(x1pos * factor + 0.5, y1pos * factor + 0.5,
+	    1.5 * factor/2, 0, 2*Math.PI);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x2pos * factor + 0.5, y2pos * factor + 0.5,
+	    1.5 * factor/2, 0, 2*Math.PI);
+    ctx.stroke();
+}
+
 function showLoupe(x, y) {
     if (backgroundImage === undefined || loupe_ctx === undefined)
 	return;
@@ -104,12 +124,12 @@ function showLoupe(x, y) {
 	}
 	var model = aug_view.getModel();
 	model.forAllLines(function(line) {
-	    line.draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
-				 loupe_magnification);
+	    drawLoupeLine(loupe_ctx, line, l_off_x, l_off_y,
+			  loupe_magnification);
 	});
 	if (model.hasEditLine()) {
-	    model.getEditLine().draw_loupe_line(loupe_ctx, l_off_x, l_off_y,
-						loupe_magnification);
+	    drawLoupeLine(loupe_ctx, model.getEditLine(), l_off_x, l_off_y,
+			  loupe_magnification);
 	}
     }
 }
