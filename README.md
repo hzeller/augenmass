@@ -23,7 +23,7 @@ Basic UI:
    * Double-click on a number to enter some value. The other lines are
      automatically re-calculated according to that factor.
    * If you start the line exactly where another one stopped, the angle between the
-     lines is indicated. The loupe functionality will help you find the overlaps
+     lines is indicated. The loupe functionality will help you match the points.
      ![Triangles...][angle-image]
    * You can download the result as transparent overlay PNG image.
 
