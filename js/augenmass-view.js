@@ -42,9 +42,19 @@ function AugenmassView(canvas) {
 	    drawEditline(ctx, this.model_.getEditLine(), print_factor);
 	}
 	this.measure_ctx_.font = angle_font_pixels + "px Sans Serif";
-	var count = 0;
+	// Radius_fudge makes the radius of the arc slighly different
+	// for all angles around one center so that they are easier
+	// to distinguish.
+	var radius_fudge = 0;
+	var current_point = undefined;
 	this.model_.forAllArcs(function(arc) {
-	    drawArc(ctx, arc, (count++ % 3) * 3);
+	    if (current_point == undefined
+		|| current_point.x != arc.center.x
+		|| current_point.y != arc.center.y) {
+		current_point = arc.center;
+		radius_fudge = 0;
+	    }
+	    drawArc(ctx, arc, (radius_fudge++ % 3) * 3);
 	});
     }
 

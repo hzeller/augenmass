@@ -44,6 +44,8 @@ var angle_font_pixels = 10;
 var loupe_magnification = 7;
 var end_bracket_len = 5;
 
+// These variables need to be cut down and partially be private
+// to the modules.
 var help_system;
 var aug_view;
 var print_factor;
