@@ -1,8 +1,8 @@
 Augenmaß
 ========
 
-Given a background photo, you can draw lines on top of it whose relative
-lengths are shown. Double-clicking on a line allows you to set a
+Given a background photo, this tool allows you to draw lines on top of it whose relative
+lengths in pixel are shown. Double-clicking on a line allows you to set a
 'reference size', all the other numbers are adjusted accordingly.
 
 Use this for instance by taking a picture of something with a ruler in the
@@ -19,11 +19,12 @@ Basic UI:
      (Nothing is uploaded anywhere, this is just used locally by your browser).
    * Draw lines on top of your background image. First click first point, second
      click second point. ESC key if you want to cancel the current line.
+   * The loupe shows a magnified view of the area the mouse cursor is covering.
    * Double-click on a number to enter some value. The other lines are
      automatically re-calculated according to that factor.
    * If you start the line exactly where another one stopped, the angle between the
-     lines is indicated. ![Triangles...][angle-image]
-     The loupe functionality will help you find the
+     lines is indicated. The loupe functionality will help you find the overlaps
+     ![Triangles...][angle-image]
    * You can download the result as transparent overlay PNG image.
 
 (Note, I don't really know JavaScript, this is essentially my first JavaScript experiment.
