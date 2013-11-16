@@ -8,6 +8,8 @@ var HelpLevelEnum = {
     HELP_SET_LEN:       3,
     HELP_YOU_ARE_EXPERT_NOW: 4
 };
+
+// Constructor function.
 function HelpSystem(helptext_span) {
     this.last_help_level_ = -1;
 

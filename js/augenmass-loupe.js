@@ -1,3 +1,4 @@
+// TODO: make this an object.
 var loupe_canvas;
 var loupe_ctx;
 

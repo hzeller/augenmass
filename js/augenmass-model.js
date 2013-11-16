@@ -1,3 +1,4 @@
+// Conctructor function.
 function AugenmassModel() {
     "use strict";
     this.lines_ = new Array();
