@@ -1,9 +1,11 @@
 // Constructor function.
 function AugenmassView(canvas) {
+    "use strict";
     this.measure_canvas_ = canvas;
     this.measure_ctx_ = this.measure_canvas_.getContext('2d');
     this.model_ = undefined;
     this.controller_ = undefined;
+    this.print_factor_ = 1.0;  // Semantically, this one should probably be in the model.
 
     // Create a fresh measure canvas of the given size.
     this.resetWithSize = function(width, height) {
@@ -11,13 +13,16 @@ function AugenmassView(canvas) {
 	this.measure_canvas_.height = height;
 	this.measure_ctx_.font = 'bold ' + length_font_pixels + 'px Sans Serif';
 
-	print_factor = 1;
+	this.print_factor_ = 1.0;
 	// A fresh model.
 	this.model_ = new AugenmassModel();
 	if (this.controller_ == undefined) {
 	    this.controller_ = new AugenmassController(canvas, this);
 	}
     }
+
+    this.getUnitsPerPixel = function() { return this.print_factor_; }
+    this.setUnitsPerPixel = function(factor) { this.print_factor_ = factor; }
 
     this.getModel = function() { return this.model_; }
     this.getCanvas = function() { return this.measure_canvas_; }
@@ -30,16 +35,17 @@ function AugenmassView(canvas) {
     }
 
     this.highlightLine = function(line) {
-	drawMeasureLine(this.measure_ctx_, line, print_factor, true);
+	drawMeasureLine(this.measure_ctx_, line, this.print_factor_, true);
     }
 
     this.drawAllNoClear = function(ctx) {
 	this.measure_ctx_.font = 'bold ' + length_font_pixels + 'px Sans Serif';
+	var length_factor = this.print_factor_;
 	this.model_.forAllLines(function(line) {
-	    drawMeasureLine(ctx, line, print_factor, false);
+	    drawMeasureLine(ctx, line, length_factor, false);
 	});
 	if (this.model_.hasEditLine()) {
-	    drawEditline(ctx, this.model_.getEditLine(), print_factor);
+	    drawEditline(ctx, this.model_.getEditLine(), this.print_factor_);
 	}
 	this.measure_ctx_.font = angle_font_pixels + "px Sans Serif";
 	// Radius_fudge makes the radius of the arc slighly different

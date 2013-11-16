@@ -48,7 +48,6 @@ var end_bracket_len = 5;
 // to the modules.
 var help_system;
 var aug_view;
-var print_factor;
 var backgroundImage;  // if loaded.
 
 // Init function. Call once on page-load.
@@ -176,12 +175,13 @@ function AugenmassController(canvas, view) {
 	if (selected_line == undefined)
 	    return;
 	getView().highlightLine(selected_line);
-	var orig_len_txt = (print_factor * selected_line.length()).toPrecision(4);
+	var orig_len_txt = (getView().getUnitsPerPixel()
+			    * selected_line.length()).toPrecision(4);
 	var new_value_txt = prompt("Length of selected line ?", orig_len_txt);
 	if (orig_len_txt != new_value_txt) {
 	    var new_value = parseFloat(new_value_txt);
 	    if (new_value && new_value > 0) {
-		print_factor = new_value / selected_line.length();
+		getView().setUnitsPerPixel(new_value / selected_line.length());
 	    }
 	}
 	help_system.printLevel(HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW);
