@@ -122,14 +122,21 @@ function AugenmassView(canvas) {
     }
 
 
-    // Draw a T end-piece at position x, y
-    function drawT(ctx, x, y, remote_x, remote_y) {
+    // Draw a perpendicular (to the line) end-piece ("T") at position x, y.
+    function drawT(ctx, x, y, remote_x, remote_y, t_len, optional_gap) {
 	var len = euklid_distance(x, y, remote_x, remote_y);
 	if (len < 1) return;
 	var dx = remote_x - x;
 	var dy = remote_y - y;
-	ctx.moveTo(x - end_bracket_len * dy/len, y + end_bracket_len * dx/len);
-	ctx.lineTo(x + end_bracket_len * dy/len, y - end_bracket_len * dx/len);
+	if (optional_gap === undefined) {
+	    ctx.moveTo(x - t_len * dy/len, y + t_len * dx/len);
+	    ctx.lineTo(x + t_len * dy/len, y - t_len * dx/len);
+	} else {
+	    ctx.moveTo(x - t_len * dy/len, y + t_len * dx/len);
+	    ctx.lineTo(x - optional_gap * dy/len, y + optional_gap * dx/len);
+	    ctx.moveTo(x + t_len * dy/len, y - t_len * dx/len);
+	    ctx.lineTo(x + optional_gap * dy/len, y - optional_gap * dx/len);
+	}
     }
 
     // Drawing the line while editing.
@@ -155,7 +162,8 @@ function AugenmassView(canvas) {
 	ctx.strokeStyle = background_line_style;
 	ctx.lineWidth = background_line_width;
 	ctx.lineCap = 'round';
-	drawT(ctx, line.p1.x, line.p1.y, line.p2.x, line.p2.y);
+	drawT(ctx, line.p1.x, line.p1.y, line.p2.x, line.p2.y,
+	     end_bracket_len);
 	ctx.stroke();
 
 	// White background for actual line
@@ -165,17 +173,27 @@ function AugenmassView(canvas) {
 	ctx.lineTo(line.p1.x + dx, line.p1.y + dy);
 	ctx.stroke();
 
-	// t-line and line.
+	// t-line ...
+	ctx.beginPath();
+	ctx.strokeStyle = '#000';
+	ctx.lineWidth = 0.5;
+	ctx.lineCap = 'butt';
+	drawT(ctx, line.p1.x, line.p1.y, line.p2.x, line.p2.y, 50);
+	// Leave a little gap at the line where the cursor is to leave
+	// free view to the surroundings.
+	drawT(ctx, line.p2.x, line.p2.y, line.p1.x, line.p1.y, 50, 10);
+	ctx.stroke();
+
+	// ... and actual line.
 	ctx.beginPath();
 	ctx.strokeStyle = '#00F';
 	ctx.lineWidth = 1;
-	ctx.lineCap = 'butt';
-	drawT(ctx, line.p1.x, line.p1.y, line.p2.x, line.p2.y);
 	ctx.moveTo(line.p1.x, line.p1.y);
 	ctx.lineTo(line.p1.x + dx, line.p1.y + dy);
 	ctx.stroke();
 
 	if (pixel_len >= 2) {
+	    // Print label.
 	    // White background for text. We're using a short line, so that we
 	    // have a nicely rounded box with our line-cap.
 	    var text_dx = -text_len/2;
@@ -221,8 +239,10 @@ function AugenmassView(canvas) {
 	ctx.lineCap = 'round';
 	ctx.moveTo(line.p1.x, line.p1.y);
 	ctx.lineTo(line.p2.x, line.p2.y);
-	drawT(ctx, line.p1.x, line.p1.y, line.p2.x, line.p2.y);	
-	drawT(ctx, line.p2.x, line.p2.y, line.p1.x, line.p1.y);	
+	drawT(ctx, line.p1.x, line.p1.y, line.p2.x, line.p2.y,
+	     end_bracket_len);	
+	drawT(ctx, line.p2.x, line.p2.y, line.p1.x, line.p1.y,
+	     end_bracket_len);	
 	ctx.stroke();
 
 	// Background behind text. We're using a short line, so that we
@@ -246,8 +266,10 @@ function AugenmassView(canvas) {
 	ctx.lineWidth = 1;
 	ctx.moveTo(line.p1.x, line.p1.y);
 	ctx.lineTo(line.p2.x, line.p2.y);
-	drawT(ctx, line.p1.x, line.p1.y, line.p2.x, line.p2.y);	
-	drawT(ctx, line.p2.x, line.p2.y, line.p1.x, line.p1.y);	
+	drawT(ctx, line.p1.x, line.p1.y, line.p2.x, line.p2.y,
+	     end_bracket_len);	
+	drawT(ctx, line.p2.x, line.p2.y, line.p1.x, line.p1.y,
+	     end_bracket_len);
 	ctx.stroke();
 
 	// .. and text.
