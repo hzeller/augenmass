@@ -53,7 +53,6 @@ var backgroundImage;  // if loaded. Also used by the loupe.
 // Init function. Call once on page-load.
 function augenmass_init() {
     help_system = new HelpSystem(document.getElementById('helptext'));
-    help_system.printLevel(HelpLevelEnum.HELP_FILE_LOADING);
     aug_view = new AugenmassView(document.getElementById('measure'));
 
     loupe_canvas = document.getElementById('loupe');
@@ -153,7 +152,7 @@ function AugenmassController(canvas, view) {
 	if (!getModel().hasEditLine()) {
 	    getModel().startEditLine(x, y);
 	    this.start_line_time_ = now;
-	    help_system.printLevel(HelpLevelEnum.HELP_FINISH_LINE);
+	    help_system.achievementUnlocked(HelpLevelEnum.DONE_START_LINE);
 	} else {
 	    var line = getModel().updateEditLine(x, y);
 	    // Make sure that this was not a double-click event.
@@ -161,7 +160,7 @@ function AugenmassController(canvas, view) {
 	    if (line.length() > 50
 		|| (line.length() > 0 && (now - this.start_line_time_) > 500)) {
 		getModel().commitEditLine();
-		help_system.printLevel(HelpLevelEnum.HELP_SET_LEN);
+		help_system.achievementUnlocked(HelpLevelEnum.DONE_FINISH_LINE);
 	    } else {
 		getModel().forgetEditLine();
 	    }
@@ -184,7 +183,7 @@ function AugenmassController(canvas, view) {
 		getView().setUnitsPerPixel(new_value / selected_line.length());
 	    }
 	}
-	help_system.printLevel(HelpLevelEnum.HELP_YOU_ARE_EXPERT_NOW);
+	help_system.achievementUnlocked(HelpLevelEnum.DONE_SET_LEN);
 	getView().drawAll();
     }
 }
@@ -234,7 +233,7 @@ function load_background_image(chooser) {
 	    
 	    aug_view.resetWithSize(new_img.width, new_img.height);
 
-	    help_system.printLevel(HelpLevelEnum.HELP_START_LINE);
+	    help_system.achievementUnlocked(HelpLevelEnum.DONE_FILE_LOADING);
 	    backgroundImage = new_img;
 	    init_download(chooser.files[0].name);
 	}
