@@ -1,6 +1,8 @@
-// TODO: make this an object.
+// TODO: make this an object. Needs to have access to the
+// background image as well.
 var loupe_canvas;
 var loupe_ctx;
+var loupe_fading_timer;
 
 // Helper to show the 'corner hooks' in the loupe display.
 function showQuadBracket(loupe_ctx, loupe_size, bracket_len) {
@@ -135,15 +137,14 @@ function showLoupe(x, y) {
     }
 }
 
-var fading_loupe_timer;
 function showFadingLoupe(x, y) {
-    if (fading_loupe_timer != undefined)
-	clearTimeout(fading_loupe_timer);   // stop scheduled fade-out.
+    if (loupe_fading_timer != undefined)
+	clearTimeout(loupe_fading_timer);   // stop scheduled fade-out.
     loupe_canvas.style.transition = "top 0.3s, opacity 0s";
     loupe_canvas.style.opacity = 1;
     showLoupe(x, y);
     // Stay a couple of seconds, then fade away.
-    fading_loupe_timer = setTimeout(function() {
+    loupe_fading_timer = setTimeout(function() {
 	loupe_canvas.style.transition = "top 0.3s, opacity 5s";
 	loupe_canvas.style.opacity = 0;
     }, 8000);

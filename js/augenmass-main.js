@@ -48,7 +48,7 @@ var end_bracket_len = 5;
 // to the modules.
 var help_system;
 var aug_view;
-var backgroundImage;  // if loaded.
+var backgroundImage;  // if loaded. Also used by the loupe.
 
 // Init function. Call once on page-load.
 function augenmass_init() {
