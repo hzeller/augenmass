@@ -5,7 +5,8 @@ var HelpLevelEnum = {
     DONE_FILE_LOADING:  0,
     DONE_START_LINE:    1,
     DONE_FINISH_LINE:   2,
-    DONE_SET_LEN:       3,
+    DONE_ADD_ANGLE:     3,
+    DONE_SET_LEN:       4,
 };
 
 // Constructor function.
@@ -31,6 +32,9 @@ function HelpSystem(helptext_span) {
 	    printHelp("A second click finishes the line. Or Cancel with 'Esc'.");
 	    break;
 	case HelpLevelEnum.DONE_FINISH_LINE:
+	    printHelp("TIP: starting a line where another ends measures their angles.");
+	    break;
+	case HelpLevelEnum.DONE_ADD_ANGLE:
 	    printHelp("Double click on length to set relative size.");
 	    break;
 	case HelpLevelEnum.DONE_SET_LEN:

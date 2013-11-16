@@ -53,6 +53,7 @@ function AugenmassView(canvas) {
 	// to distinguish.
 	var radius_fudge = 0;
 	var current_point = undefined;
+	var any_arc = false;
 	this.model_.forAllArcs(function(arc) {
 	    if (current_point == undefined
 		|| current_point.x != arc.center.x
@@ -61,7 +62,11 @@ function AugenmassView(canvas) {
 		radius_fudge = 0;
 	    }
 	    drawArc(ctx, arc, (radius_fudge++ % 3) * 3);
+	    any_arc = true;
 	});
+	if (any_arc) {
+	    help_system.achievementUnlocked(HelpLevelEnum.DONE_ADD_ANGLE);
+	}
     }
 
     // Write rotated text, aligned to the outside.
