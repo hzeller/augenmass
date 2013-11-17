@@ -6,6 +6,7 @@ function AugenmassView(canvas) {
     this.model_ = undefined;
     this.controller_ = undefined;
     this.print_factor_ = 1.0;  // Semantically, this one should probably be in the model.
+    this.show_deltas_ = false;
 
     // Create a fresh measure canvas of the given size.
     this.resetWithSize = function(width, height) {
@@ -23,6 +24,7 @@ function AugenmassView(canvas) {
 
     this.getUnitsPerPixel = function() { return this.print_factor_; }
     this.setUnitsPerPixel = function(factor) { this.print_factor_ = factor; }
+    this.setShowDeltas = function(b) { this.show_deltas_ = b; }
 
     this.getModel = function() { return this.model_; }
     this.getCanvas = function() { return this.measure_canvas_; }
@@ -35,17 +37,23 @@ function AugenmassView(canvas) {
     }
 
     this.highlightLine = function(line) {
-	drawMeasureLine(this.measure_ctx_, line, this.print_factor_, true);
+	drawMeasureLine(this.measure_ctx_, line, this.print_factor_, this.show_deltas_,
+			true);
     }
 
     this.drawAllNoClear = function(ctx) {
 	this.measure_ctx_.font = 'bold ' + length_font_pixels + 'px Sans Serif';
 	var length_factor = this.print_factor_;
+	var show_deltas = this.show_deltas_;
 	this.model_.forAllLines(function(line) {
-	    drawMeasureLine(ctx, line, length_factor, false);
+	    drawMeasureLine(ctx, line, length_factor, show_deltas, false);
 	});
 	if (this.model_.hasEditLine()) {
-	    drawEditline(ctx, this.model_.getEditLine(), this.print_factor_);
+	    var line = this.model_.getEditLine();
+	    drawEditline(ctx, line, this.print_factor_);
+	    if (this.show_deltas_) {
+		drawDeltaLine(ctx, line, this.print_factor_);
+	    }
 	}
 	this.measure_ctx_.font = angle_font_pixels + "px Sans Serif";
 	// Radius_fudge makes the radius of the arc slighly different
@@ -145,8 +153,6 @@ function AugenmassView(canvas) {
     // anything in the target crosshair.
     function drawEditline(ctx, line, length_factor) {
 	var pixel_len = line.length();
-	var print_text = (length_factor * pixel_len).toPrecision(4);
-	var text_len = ctx.measureText(print_text).width + 2 * length_font_pixels;
 
 	// We want to draw the line a little bit shorter, so that the
 	// open crosshair cursor has 'free sight'
@@ -193,6 +199,8 @@ function AugenmassView(canvas) {
 	ctx.stroke();
 
 	if (pixel_len >= 2) {
+	    var print_text = (length_factor * pixel_len).toPrecision(4);
+	    var text_len = ctx.measureText(print_text).width + 2 * length_font_pixels;
 	    // Print label.
 	    // White background for text. We're using a short line, so that we
 	    // have a nicely rounded box with our line-cap.
@@ -202,34 +210,22 @@ function AugenmassView(canvas) {
 		text_dx = -dx * text_len/(2 * pixel_len);
 		text_dy = -dy * (length_font_pixels + 10)/(2 * pixel_len);
 	    }
-	    ctx.beginPath();
-	    ctx.strokeStyle = background_line_style;
-	    ctx.lineWidth = length_font_pixels + 10;
-	    ctx.lineCap = 'round';
-	    // We added the length_font_pixels above, so remove them here: the
-	    // rounding of the stroke will cover that.
-	    var background_text_len = text_len/2 - length_font_pixels;
-	    ctx.moveTo(line.p1.x + text_dx - background_text_len,
-		       line.p1.y + text_dy);
-	    ctx.lineTo(line.p1.x + text_dx + background_text_len,
-		       line.p1.y + text_dy);
-	    ctx.stroke();
-	    
-	    ctx.beginPath();
-	    ctx.fillStyle = '#000';
-	    ctx.textBaseline = 'middle';
-	    ctx.textAlign = 'center';
-	    ctx.fillText(print_text, line.p1.x + text_dx, line.p1.y + text_dy);
-	    ctx.stroke();
+	    writeLabel(ctx, print_text, line.p1.x + text_dx, line.p1.y + text_dy,
+		       "center");
 	}
     }
 
     // General draw of a measuring line.
-    function drawMeasureLine(ctx, line, length_factor, highlight) {
+    function drawMeasureLine(ctx, line, length_factor, show_deltas, highlight) {
 	var print_text = (length_factor * line.length()).toPrecision(4);
-
+	if (show_deltas && line.p1.x != line.p2.x && line.p1.y != line.p2.y) {
+	    var dx = length_factor * (line.p2.x - line.p1.x);
+	    var dy = length_factor * (line.p1.y - line.p2.y);
+	    print_text += " (" + Math.abs(dx).toPrecision(4) + "/"
+		+ Math.abs(dy).toPrecision(4) + ")";
+	}
 	ctx.beginPath();
-	// Some white background.
+	// Some contrast background.
 	if (highlight) {
 	    ctx.strokeStyle = background_highlight_line_style;
 	} else {
@@ -243,17 +239,6 @@ function AugenmassView(canvas) {
 	     end_bracket_len);	
 	drawT(ctx, line.p2.x, line.p2.y, line.p1.x, line.p1.y,
 	     end_bracket_len);	
-	ctx.stroke();
-
-	// Background behind text. We're using a short line, so that we
-	// have a nicely rounded box with our line-cap.
-	ctx.beginPath();
-	var text_len = ctx.measureText(print_text).width;
-	ctx.lineWidth = length_font_pixels + 10;
-	ctx.moveTo((line.p1.x + line.p2.x)/2 - text_len/2 - 10,
-		   (line.p1.y + line.p2.y)/2 - length_font_pixels/2);
-	ctx.lineTo((line.p1.x + line.p2.x)/2 + text_len/2 + 10,
-		   (line.p1.y + line.p2.y)/2 - length_font_pixels/2);
 	ctx.stroke();
 
 	ctx.beginPath();
@@ -273,12 +258,63 @@ function AugenmassView(canvas) {
 	ctx.stroke();
 
 	// .. and text.
-	ctx.beginPath();
-	ctx.fillStyle = '#000';
+	writeLabel(ctx, print_text,
+		   (line.p1.x + line.p2.x)/2, (line.p1.y + line.p2.y)/2, "center");
+    }
+
+    // Write a label with a contrasty background.
+    function writeLabel(ctx, txt, x, y, alignment) {
+	ctx.font = 'bold ' + length_font_pixels + 'px Sans Serif';
 	ctx.textBaseline = 'middle';
-	ctx.textAlign = 'center';
-	ctx.fillText(print_text, (line.p1.x + line.p2.x)/2,
-		     (line.p1.y + line.p2.y)/2 - length_font_pixels/2);
+	ctx.textAlign = alignment;
+
+	ctx.beginPath();
+	var dx = ctx.measureText(txt).width;
+	ctx.lineWidth = length_font_pixels + 5;  // TODO: find from style.
+	ctx.lineCap = 'round';
+	ctx.strokeStyle = background_line_style;
+	var line_x = x;
+	if (alignment == 'center') {
+	    line_x -= dx/2;
+	}
+	else if (alignment == 'right') {
+	    line_x -= dx;
+	}
+	ctx.moveTo(line_x, y);
+	ctx.lineTo(line_x + dx, y);
 	ctx.stroke();
+	ctx.fillStyle = '#000';
+	ctx.fillText(txt, x, y);
+    }
+
+    function drawDeltaLine(ctx, line, length_factor, highlight) {
+	if (line.p1.x == line.p2.x || line.p1.y == line.p2.y)
+	    return;
+
+	var non_overlap_target = 30;
+	var dy = line.p2.y - line.p1.y;
+	var dx = line.p2.x - line.p1.x;
+	ctx.beginPath();
+	ctx.lineWidth = 0.5;
+	ctx.strokeStyle = "#000";
+	ctx.moveTo(line.p1.x, line.p1.y);
+	ctx.lineTo(line.p2.x, line.p1.y);
+	if (Math.abs(dy) > non_overlap_target) {
+	    var line_y = line.p1.y + dy - ((dy < 0) ? -non_overlap_target : non_overlap_target);
+	    ctx.lineTo(line.p2.x, line_y);
+	}
+	ctx.stroke();
+
+	var hor_len = length_factor * Math.abs(dx);
+	var hor_align = "center";
+	if (dx <= 0 && dx > -80) hor_align = "right";
+	else if (dx >= 0 && dx < 80) hor_align = "left";
+	writeLabel(ctx, hor_len.toPrecision(4), (line.p1.x + line.p2.x)/2,
+		   line.p1.y + ((dy > 0) ? -20 : 20), hor_align);
+	var vert_len = length_factor * Math.abs(dy);
+	writeLabel(ctx, vert_len.toPrecision(4),
+		   line.p2.x + (dx > 0 ? 10 : -10),
+		   (line.p1.y + line.p2.y)/2,
+		   line.p1.x < line.p2.x ? "left" : "right");
     }
 }

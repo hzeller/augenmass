@@ -55,6 +55,12 @@ function augenmass_init() {
     help_system = new HelpSystem(document.getElementById('helptext'));
     aug_view = new AugenmassView(document.getElementById('measure'));
 
+    var show_delta_checkbox = document.getElementById('show-deltas');
+    show_delta_checkbox.addEventListener("change", function(e) {
+	aug_view.setShowDeltas(show_delta_checkbox.checked);
+	aug_view.drawAll();
+    });
+
     loupe_canvas = document.getElementById('loupe');
     loupe_canvas.style.left = document.body.clientWidth - loupe_canvas.width - 10;
     loupe_ctx = loupe_canvas.getContext('2d');
