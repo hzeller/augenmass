@@ -61,6 +61,12 @@ function augenmass_init() {
 	aug_view.drawAll();
     });
 
+    var show_angle_checkbox = document.getElementById('show-angles');
+    show_angle_checkbox.addEventListener("change", function(e) {
+	aug_view.setShowAngles(show_angle_checkbox.checked);
+	aug_view.drawAll();
+    });
+
     loupe_canvas = document.getElementById('loupe');
     loupe_canvas.style.left = document.body.clientWidth - loupe_canvas.width - 10;
     loupe_ctx = loupe_canvas.getContext('2d');

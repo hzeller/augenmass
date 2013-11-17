@@ -7,6 +7,7 @@ function AugenmassView(canvas) {
     this.controller_ = undefined;
     this.print_factor_ = 1.0;  // Semantically, this one should probably be in the model.
     this.show_deltas_ = false;
+    this.show_angles_ = true;
 
     // Create a fresh measure canvas of the given size.
     this.resetWithSize = function(width, height) {
@@ -25,6 +26,7 @@ function AugenmassView(canvas) {
     this.getUnitsPerPixel = function() { return this.print_factor_; }
     this.setUnitsPerPixel = function(factor) { this.print_factor_ = factor; }
     this.setShowDeltas = function(b) { this.show_deltas_ = b; }
+    this.setShowAngles = function(b) { this.show_angles_ = b; }
 
     this.getModel = function() { return this.model_; }
     this.getCanvas = function() { return this.measure_canvas_; }
@@ -55,25 +57,27 @@ function AugenmassView(canvas) {
 		drawDeltaLine(ctx, line, this.print_factor_);
 	    }
 	}
-	this.measure_ctx_.font = angle_font_pixels + "px Sans Serif";
-	// Radius_fudge makes the radius of the arc slighly different
-	// for all angles around one center so that they are easier
-	// to distinguish.
-	var radius_fudge = 0;
-	var current_point = undefined;
-	var any_arc = false;
-	this.model_.forAllArcs(function(arc) {
-	    if (current_point == undefined
-		|| current_point.x != arc.center.x
-		|| current_point.y != arc.center.y) {
-		current_point = arc.center;
-		radius_fudge = 0;
+	if (this.show_angles_) {
+	    this.measure_ctx_.font = angle_font_pixels + "px Sans Serif";
+	    // Radius_fudge makes the radius of the arc slighly different
+	    // for all angles around one center so that they are easier
+	    // to distinguish.
+	    var radius_fudge = 0;
+	    var current_point = undefined;
+	    var any_arc = false;
+	    this.model_.forAllArcs(function(arc) {
+		if (current_point == undefined
+		    || current_point.x != arc.center.x
+		    || current_point.y != arc.center.y) {
+		    current_point = arc.center;
+		    radius_fudge = 0;
+		}
+		drawArc(ctx, arc, (radius_fudge++ % 3) * 3);
+		any_arc = true;
+	    });
+	    if (any_arc) {
+		help_system.achievementUnlocked(HelpLevelEnum.DONE_ADD_ANGLE);
 	    }
-	    drawArc(ctx, arc, (radius_fudge++ % 3) * 3);
-	    any_arc = true;
-	});
-	if (any_arc) {
-	    help_system.achievementUnlocked(HelpLevelEnum.DONE_ADD_ANGLE);
 	}
     }
 
@@ -221,7 +225,7 @@ function AugenmassView(canvas) {
 	if (show_deltas && line.p1.x != line.p2.x && line.p1.y != line.p2.y) {
 	    var dx = length_factor * (line.p2.x - line.p1.x);
 	    var dy = length_factor * (line.p1.y - line.p2.y);
-	    print_text += " (" + Math.abs(dx).toPrecision(4) + "/"
+	    print_text += "; \u0394=(" + Math.abs(dx).toPrecision(4) + ", "
 		+ Math.abs(dy).toPrecision(4) + ")";
 	}
 	ctx.beginPath();
