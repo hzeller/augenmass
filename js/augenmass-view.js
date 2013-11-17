@@ -258,8 +258,15 @@ function AugenmassView(canvas) {
 	ctx.stroke();
 
 	// .. and text.
+	var a = new Angle(line.p1, line.p2, line);
+	var slope_upwards = ((a.angle > 0 && a.angle < Math.PI/2)
+			     || (a.angle > Math.PI && a.angle < 3 * Math.PI/2));
+	var flat_angle = Math.PI/10;
+	var flat_slope = ((a.angle > 0 && a.angle < flat_angle)
+			  || (a.angle > Math.PI/2 && a.angle < (Math.PI/2 + flat_angle)));
 	writeLabel(ctx, print_text,
-		   (line.p1.x + line.p2.x)/2, (line.p1.y + line.p2.y)/2, "center");
+		   (line.p1.x + line.p2.x)/2, (line.p1.y + line.p2.y)/2 - 10,
+		   flat_slope ? "center" : (slope_upwards ? "right" : "left"));
     }
 
     // Write a label with a contrasty background.
