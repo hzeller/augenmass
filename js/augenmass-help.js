@@ -35,7 +35,7 @@ function HelpSystem(helptext_span) {
 	    printHelp("TIP: starting a line where another ends measures their angles.");
 	    break;
 	case HelpLevelEnum.DONE_ADD_ANGLE:
-	    printHelp("Double click on length to set relative size.");
+	    printHelp("Double click on center of line to set relative size.");
 	    break;
 	case HelpLevelEnum.DONE_SET_LEN:
 	    printHelp("Congratulations - you are an expert now!", true);
