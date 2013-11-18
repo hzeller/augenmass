@@ -112,7 +112,7 @@ function AugenmassModel() {
 		if (!a.is_valid || !b.is_valid)
 		    continue;
 		var arc = new Arc(a, b);
-		if (arc.angleInDegrees() > 180.0)
+		if (arc.angleInDegrees() >= 180.0)
 		    continue;
 		cb(arc)
 	    }
