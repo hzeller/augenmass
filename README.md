@@ -22,6 +22,7 @@ Basic UI:
    * The loupe shows a magnified view of the area the mouse cursor is covering.
    * Double-click on a number to enter some value. The other lines are
      automatically re-calculated according to that factor.
+   * Right-click to either abort the current line or delete the closest line. 
    * If you start the line exactly where another one stopped, the angle between the
      lines is indicated. The loupe functionality will help you match the points.
      ![Triangles...][angle-image]

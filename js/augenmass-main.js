@@ -166,7 +166,15 @@ function AugenmassController(canvas, view) {
   this.onClick = function (e, x, y) {
     if (e.which != undefined && e.which == 3) {
       // right mouse button.
+      if (getModel().hasEditLine()){
         cancelCurrentLine();
+      } else{
+        // delete line when not editing
+        var selected_line = getModel().findClosest(x, y);
+        if (selected_line === undefined) return;
+        getModel().removeLine(selected_line);
+        getView().drawAll();
+      }
       return;
     }
     var now = new Date().getTime();
