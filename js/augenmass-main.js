@@ -173,6 +173,7 @@ function AugenmassController(canvas, view) {
         var selected_line = getModel().findClosest(x, y);
         if (selected_line === undefined) return;
         getModel().removeLine(selected_line);
+        getModel().removeAngles(selected_line);
         getView().drawAll();
       }
       return;
