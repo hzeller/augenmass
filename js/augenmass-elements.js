@@ -39,6 +39,10 @@ function Line(x1, y1, x2, y2) {
   this.length = function () {
     return euklid_distance(this.p1.x, this.p1.y, this.p2.x, this.p2.y);
   };
+
+  this.direction = function () {
+    return Math.atan2(this.p2.y - this.p1.y, this.p2.x - this.p1.x);
+  }
 }
 
 // Represents the (CCW) angle of the line between "center_p" center point and

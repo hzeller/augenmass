@@ -101,6 +101,17 @@ function AugenmassModel() {
     return undefined;
   };
 
+  this.getLine = function (index) {
+    if(index == -1) index = this.lines_.length - 1;
+    return this.lines_[index];
+  }
+
+  this.getLineAngle = function (index) {
+    var line = this.getLine(index);
+    if(line == undefined) return undefined;
+    return line.direction();
+  }
+
   // Iterate over all lines; Callback needs to accept a line.
   this.forAllLines = function (cb) {
     for (var i = 0; i < this.lines_.length; ++i) {

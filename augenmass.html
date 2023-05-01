@@ -39,7 +39,7 @@
         border-radius: 10px;
         color: #000;     /* influences shadow color. */
       }
-      #download-result {
+      #download-overlay, #download-composite {
         font-size: larger;
         font-weight: bold;
         color: #11f;
@@ -47,18 +47,21 @@
         padding: 2px;
       }
       #download:hover {
-	color: #fff;
+	      color: #fff;
       }
     </style>
   </head>
   <body style="font-family: sans-serif;">
     <form>
       <input id="file-chooser" type="file" accept="image/*">
+      <button id="do-align" type="button">Align</button>
       <input id="show-angles" type="checkbox" checked="1">
       <label for="show-angles">Show &#x2222; angles</label>
-      <input id="show-deltas" type="checkbox"><label for="show-deltas">Show dx/dy</label>
+      <input id="show-deltas" type="checkbox">
+      <label for="show-deltas">Show dx/dy</label>
     </form>
-    <a id="download-result" download="augenmass-result.png">[Export transparent overlay]</a>
+    <a id="download-overlay" download="augenmass-overlay.png">[Save transparent overlay]</a>
+    <a id="download-composite" download="augenmass-composite.png">[Save composite image]</a>
     <span id="helptext"></span>
     <canvas id="background-img" width="50" height="50"></canvas>
     <canvas id="measure" width="50" height="50" style="cursor:url(icons/target-cursor.png) 31 31,crosshair;"></canvas>
