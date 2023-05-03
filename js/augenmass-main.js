@@ -52,9 +52,24 @@ var backgroundImage; // if loaded. Also used by the loupe.
 
 // Init function. Call once on page-load.
 function augenmass_init() {
-  help_system = new HelpSystem(document.getElementById("helptext"));
-  aug_view = new AugenmassView(document.getElementById("measure"));
 
+  var help_text = document.getElementById("helptext");
+  //help_system = new HelpSystem(help_text);
+  if(!help_system) {
+    var help_hints = [
+      "How to use:",
+      "* Left click: draw a line",
+      "* Double left click: set line length",
+      "* Right click: delete object"
+    ];
+    for (var i = 0; i < help_hints.length; i++) {
+      help_text.appendChild(document.createElement("br"));
+      help_text.appendChild(document.createTextNode(help_hints[i]));
+    }
+  }
+
+  aug_view = new AugenmassView(document.getElementById("measure"));
+  
   var show_delta_checkbox = document.getElementById("show-deltas");
   show_delta_checkbox.addEventListener("change", function (e) {
     aug_view.setShowDeltas(show_delta_checkbox.checked);
@@ -139,7 +154,7 @@ function AugenmassController(canvas, view) {
       y = e.pageY;
     } else {
       x = e.clientX + scrollLeft();
-      y = e.clientY + scrollY();
+      y = e.clientY + scrollTop();
     }
     x -= canvas.offsetLeft;
     y -= canvas.offsetTop;
@@ -198,7 +213,7 @@ function AugenmassController(canvas, view) {
     if (!getModel().hasEditLine()) {
       getModel().startEditLine(x, y);
       this.start_line_time_ = now;
-      help_system.achievementUnlocked(HelpLevelEnum.DONE_START_LINE);
+      if(help_system) help_system.achievementUnlocked(HelpLevelEnum.DONE_START_LINE);
     } else {
       var line = getModel().updateEditLine(x, y);
       // Make sure that this was not a double-click event.
@@ -208,7 +223,7 @@ function AugenmassController(canvas, view) {
         (line.length() > 0 && now - this.start_line_time_ > 500)
       ) {
         getModel().commitEditLine();
-        help_system.achievementUnlocked(HelpLevelEnum.DONE_FINISH_LINE);
+        if(help_system) help_system.achievementUnlocked(HelpLevelEnum.DONE_FINISH_LINE);
       } else {
         getModel().forgetEditLine();
       }
@@ -231,7 +246,7 @@ function AugenmassController(canvas, view) {
         getView().setUnitsPerPixel(new_value / selected_line.length());
       }
     }
-    help_system.achievementUnlocked(HelpLevelEnum.DONE_SET_LEN);
+    if(help_system) help_system.achievementUnlocked(HelpLevelEnum.DONE_SET_LEN);
     getView().drawAll();
   }
 }
@@ -301,7 +316,14 @@ function load_background_image(chooser) {
 
       aug_view.resetWithSize(new_img.width, new_img.height);
 
-      help_system.achievementUnlocked(HelpLevelEnum.DONE_FILE_LOADING);
+      if(help_system) help_system.achievementUnlocked(HelpLevelEnum.DONE_FILE_LOADING);
+      else {
+        var help_text = document.getElementById("helptext");
+        while (help_text.firstChild) {
+          help_text.removeChild(help_text.lastChild);
+        }
+      }
+
       backgroundImage = new_img;
       init_download(chooser.files[0].name);
     };

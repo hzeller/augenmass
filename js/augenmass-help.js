@@ -49,7 +49,7 @@ function HelpSystem(helptext_span) {
   function printHelp(help_text, fade_away) {
     if (help_text == undefined) return;
     while (helptext_span.firstChild) {
-      helptext_span.removeChild(helptext.firstChild);
+      helptext_span.removeChild(helptext_span.firstChild);
     }
     helptext_span.appendChild(document.createTextNode(help_text));
 

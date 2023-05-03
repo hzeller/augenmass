@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <link rel="icon" type="image/png" href="icons/tabicon.png"/>
@@ -22,18 +23,20 @@
       }
       canvas {
         position: absolute;
-        top: 3em;
-        left: 10px;
+        top: 4em;
         background: transparent;
       }
       #background-img {
+        left: 10px;
         z-index: -1;
       }
       #measure {
+        left: 10px;
         z-index: 0;
       }
       #loupe {
         position: fixed;  /* stays when rest scrolls. */
+        right: 0px;
         opacity: 0;
         box-shadow: 3px 3px 15px;
         border-radius: 10px;
@@ -60,8 +63,8 @@
       <input id="show-deltas" type="checkbox">
       <label for="show-deltas">Show dx/dy</label>
     </form>
-    <a id="download-overlay" download="augenmass-overlay.png">[Save transparent overlay]</a>
-    <a id="download-composite" download="augenmass-composite.png">[Save composite image]</a>
+    <a id="download-overlay" download="augenmass-overlay.png">[Save overlay]</a>
+    <a id="download-composite" download="augenmass-composite.png">[Save composite]</a>
     <span id="helptext"></span>
     <canvas id="background-img" width="50" height="50"></canvas>
     <canvas id="measure" width="50" height="50" style="cursor:url(icons/target-cursor.png) 31 31,crosshair;"></canvas>
