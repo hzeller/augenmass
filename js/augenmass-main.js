@@ -9,9 +9,9 @@
  *    o three dots circle, 4 ellipsis,  but allow multiple dots
  *      and minimize error.
  *    o axis where the center would be plus two dots.
- * - modes: draw single line, polyline, mark circle, select (for delete)
+ * - modes: draw single line, polyline, mark circle, select (for devare)
  * - select: left click selects a line (endpoints and center). Highlight;
- *   del deletes.
+ *   del devares.
  * - shift + mouse movement: only allow for discrete 360/16 angles.
  * - alt + mouse movement: snap to point in the vicinity.
  * - provide a 'reference straight line' defining the 0 degree angle.
@@ -52,9 +52,25 @@ var backgroundImage; // if loaded. Also used by the loupe.
 
 // Init function. Call once on page-load.
 function augenmass_init() {
-  help_system = new HelpSystem(document.getElementById("helptext"));
-  aug_view = new AugenmassView(document.getElementById("measure"));
 
+  var help_text = document.getElementById("helptext");
+  //help_system = new HelpSystem(help_text);
+  if(!help_system) {
+    var help_hints = [
+      "How to use:",
+      "* Left click: draw a line",
+      "* Double left click: set line length",
+      "* Right click: delete object"
+    ];
+    help_text.appendChild(document.createElement("br"));
+    for (var i = 0; i < help_hints.length; i++) {
+      help_text.appendChild(document.createElement("br"));
+      help_text.appendChild(document.createTextNode(help_hints[i]));
+    }
+  }
+
+  aug_view = new AugenmassView(document.getElementById("measure"));
+  
   var show_delta_checkbox = document.getElementById("show-deltas");
   show_delta_checkbox.addEventListener("change", function (e) {
     aug_view.setShowDeltas(show_delta_checkbox.checked);
@@ -82,16 +98,32 @@ function augenmass_init() {
     load_background_image(chooser);
   });
 
-  var download_link = document.getElementById("download-result");
-  download_link.addEventListener(
+  var align = document.getElementById("do-align");
+  align.addEventListener("click", function () {
+    do_alignment()
+  });
+
+  var download_overlay_link = document.getElementById("download-overlay");
+  download_overlay_link.addEventListener(
     "click",
     function () {
-      download_result(download_link);
+      download_overlay(download_overlay_link);
     },
     false
   );
-  download_link.style.opacity = 0; // not visible at first.
-  download_link.style.cursor = "default";
+  download_overlay_link.style.opacity = 0; // not visible at first.
+  download_overlay_link.style.cursor = "default";
+  
+  var download_composite_link = document.getElementById("download-composite");
+  download_composite_link.addEventListener(
+    "click",
+    function () {
+      download_composite(download_composite_link);
+    },
+    false
+  );
+  download_composite_link.style.opacity = 0; // not visible at first.
+  download_composite_link.style.cursor = "default";
 }
 
 function AugenmassController(canvas, view) {
@@ -123,7 +155,7 @@ function AugenmassController(canvas, view) {
       y = e.pageY;
     } else {
       x = e.clientX + scrollLeft();
-      y = e.clientY + scrollY();
+      y = e.clientY + scrollTop();
     }
     x -= canvas.offsetLeft;
     y -= canvas.offsetTop;
@@ -169,10 +201,11 @@ function AugenmassController(canvas, view) {
       if (getModel().hasEditLine()){
         cancelCurrentLine();
       } else{
-        // delete line when not editing
+        // devare line when not editing
         var selected_line = getModel().findClosest(x, y);
         if (selected_line === undefined) return;
         getModel().removeLine(selected_line);
+        getModel().removeAngles(selected_line);
         getView().drawAll();
       }
       return;
@@ -181,7 +214,7 @@ function AugenmassController(canvas, view) {
     if (!getModel().hasEditLine()) {
       getModel().startEditLine(x, y);
       this.start_line_time_ = now;
-      help_system.achievementUnlocked(HelpLevelEnum.DONE_START_LINE);
+      if(help_system) help_system.achievementUnlocked(HelpLevelEnum.DONE_START_LINE);
     } else {
       var line = getModel().updateEditLine(x, y);
       // Make sure that this was not a double-click event.
@@ -191,7 +224,7 @@ function AugenmassController(canvas, view) {
         (line.length() > 0 && now - this.start_line_time_ > 500)
       ) {
         getModel().commitEditLine();
-        help_system.achievementUnlocked(HelpLevelEnum.DONE_FINISH_LINE);
+        if(help_system) help_system.achievementUnlocked(HelpLevelEnum.DONE_FINISH_LINE);
       } else {
         getModel().forgetEditLine();
       }
@@ -214,7 +247,7 @@ function AugenmassController(canvas, view) {
         getView().setUnitsPerPixel(new_value / selected_line.length());
       }
     }
-    help_system.achievementUnlocked(HelpLevelEnum.DONE_SET_LEN);
+    if(help_system) help_system.achievementUnlocked(HelpLevelEnum.DONE_SET_LEN);
     getView().drawAll();
   }
 }
@@ -232,16 +265,38 @@ function init_download(filename) {
   if (pos > 0) {
     filename = filename.substr(0, pos);
   }
-  var download_link = document.getElementById("download-result");
-  download_link.download = "augenmass-" + filename + ".png";
-  download_link.style.cursor = "pointer";
-  download_link.style.opacity = 1;
+
+  var download_overlay = document.getElementById("download-overlay");
+  download_overlay.download = "augenmass-overlay-" + filename + ".png";
+  download_overlay.style.cursor = "pointer";
+  download_overlay.style.opacity = 1;
+  
+  var download_composite = document.getElementById("download-composite");
+  download_composite.download = "augenmass-composite-" + filename + ".png";
+  download_composite.style.cursor = "pointer";
+  download_composite.style.opacity = 1;
 }
 
-function download_result(download_link) {
+function download_overlay(download_link) {
   if (backgroundImage === undefined) return;
   aug_view.drawAll();
   download_link.href = aug_view.getCanvas().toDataURL("image/png");
+}
+
+function download_composite(download_link) {
+  if (backgroundImage === undefined) return;
+  aug_view.drawAll();
+
+  var canvas = document.createElement('canvas');
+  canvas.width = backgroundImage.width;
+  canvas.height = backgroundImage.height;
+
+  var ctx = canvas.getContext("2d");
+  ctx.drawImage(backgroundImage, 0, 0);
+  ctx.drawImage(aug_view.getCanvas(), 0, 0);
+  
+  download_link.href = canvas.toDataURL("image/png");
+  canvas.remove();
 }
 
 function load_background_image(chooser) {
@@ -262,10 +317,60 @@ function load_background_image(chooser) {
 
       aug_view.resetWithSize(new_img.width, new_img.height);
 
-      help_system.achievementUnlocked(HelpLevelEnum.DONE_FILE_LOADING);
+      if(help_system) help_system.achievementUnlocked(HelpLevelEnum.DONE_FILE_LOADING);
+      else {
+        var help_text = document.getElementById("helptext");
+        while (help_text.firstChild) {
+          help_text.removeChild(help_text.lastChild);
+        }
+      }
+
       backgroundImage = new_img;
       init_download(chooser.files[0].name);
     };
     new_img.src = e.target.result;
   };
+}
+
+function rotate_calc(w, h, a) {
+  //right (w, 0)
+  var xr =  w * Math.cos(a);
+  var yr =  w * Math.sin(a);
+  //bottom (0, h)
+  var xb = -h * Math.sin(a);
+  var yb =  h * Math.cos(a);
+  //corner (w, h)
+  var xc = w * Math.cos(a) - h * Math.sin(a);
+  var yc = w * Math.sin(a) + h * Math.cos(a);
+  //new size
+  var new_w = Math.max(0, xr, xb, xc) - Math.min(0, xr, xb, xc);
+  var new_h = Math.max(0, yr, yb, yc) - Math.min(0, yr, yb, yc);
+  var off_x = -Math.min(0, xr, xb, xc);
+  var off_y = -Math.min(0, yr, yb, yc);
+  return [off_x, off_y, new_w, new_h];
+}
+
+function rotate_image(radians) {
+  if (backgroundImage === undefined) return;
+  var canvas = document.getElementById("background-img");
+  var ctx = canvas.getContext("2d");
+
+  //console.log([backgroundImage.width, backgroundImage.height, radians]);
+  var offset = rotate_calc(backgroundImage.width, backgroundImage.height, radians);
+  //console.log(offset);
+
+  canvas.width = offset[2];
+  canvas.height = offset[3];
+  ctx.globalCompositeOperation = "copy";
+  ctx.translate(offset[0], offset[1]);
+  ctx.rotate(radians);
+  ctx.drawImage(backgroundImage, 0, 0);
+  backgroundImage.src = canvas.toDataURL();
+}
+
+function do_alignment() {
+  var model = aug_view.getModel();
+  if (model.hasEditLine()) return;
+  var angle = model.getLineAngle(-1);       //-1 = last line, 0 = first line
+  rotate_image(-angle);
 }

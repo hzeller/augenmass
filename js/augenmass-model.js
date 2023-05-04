@@ -51,8 +51,7 @@ function AugenmassModel() {
     return angle;
   };
 
-  this.removeAngle = function (center_point, line) {
-    var key = center_point.get_key();
+  this.removeAngleByKey = function (key, line) {
     var angle_list = this.point_angle_map_[key];
     if (angle_list === undefined) return; // shrug.
     var pos = -1;
@@ -65,7 +64,17 @@ function AugenmassModel() {
     if (pos >= 0) {
       angle_list.splice(pos, 1);
     }
+  }
+
+  this.removeAngle = function (center_point, line) {
+    this.removeAngleByKey(center_point.get_key(), line);
   };
+
+  this.removeAngles = function (line) {
+    for (let key in this.point_angle_map_) {
+      this.removeAngleByKey(key, line);
+    }
+  }
 
   // Remove a line
   this.removeLine = function (line) {
@@ -91,6 +100,17 @@ function AugenmassModel() {
     }
     return undefined;
   };
+
+  this.getLine = function (index) {
+    if(index == -1) index = this.lines_.length - 1;
+    return this.lines_[index];
+  }
+
+  this.getLineAngle = function (index) {
+    var line = this.getLine(index);
+    if(line == undefined) return undefined;
+    return line.direction();
+  }
 
   // Iterate over all lines; Callback needs to accept a line.
   this.forAllLines = function (cb) {
