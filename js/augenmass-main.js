@@ -62,6 +62,7 @@ function augenmass_init() {
       "* Double left click: set line length",
       "* Right click: delete object"
     ];
+    help_text.appendChild(document.createElement("br"));
     for (var i = 0; i < help_hints.length; i++) {
       help_text.appendChild(document.createElement("br"));
       help_text.appendChild(document.createTextNode(help_hints[i]));
